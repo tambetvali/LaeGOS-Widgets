@@ -13,27 +13,21 @@
             color: #eee;
             font-family: system-ui, sans-serif;
             margin: 0;
-            overflow: hidden; /* prevents scrollbars when dragging windows */
+            overflow: hidden;
         }
 
-        /* Bootbox fallback (shown before JS loads) */
-        .bootbox {
-            position: absolute;
-            top: 50vh;
-            left: 50vw;
-            transform: translate(-50%, -50%);
-            padding: 2rem 3rem;
-            border: 2px solid #444;
-            border-radius: 10px;
-            background: #1a1a1a;
-            box-shadow: 0 0 20px #000 inset;
+        /* Content inside the WinBox window */
+        .bootcontent {
+            padding: 1.6rem 2rem;
             text-align: center;
-            width: 360px;
+            background: #222; /* matches window background */
+            height: 100%;
+            box-sizing: border-box;
         }
 
         h1 {
             margin-bottom: 0.5rem;
-            font-size: 2.4rem;
+            font-size: 2.2rem;
         }
 
         .subtitle {
@@ -94,8 +88,8 @@
 </head>
 <body>
 
-    <!-- Bootbox (converted to window on load) -->
-    <div id="bootbox" class="bootbox">
+    <!-- Content that will be mounted inside the WinBox window -->
+    <div id="bootcontent" class="bootcontent">
         <h1>📟 LaeGOS</h1>
         <div class="subtitle">Laegna Handheld Calculator OS</div>
         <p>The micro‑OS will appear here.</p>
@@ -129,10 +123,10 @@
     <script src="{{ url_for('static', filename='js/winbox.bundle.min.js') }}"></script>
 
     <script>
-        // Convert bootbox into a WinBox window
         window.addEventListener("load", () => {
-            const box = document.getElementById("bootbox");
+            const content = document.getElementById("bootcontent");
 
+            // Create the window as the full visual container
             const win = new WinBox({
                 title: "📟 LaeGOS Boot",
                 class: ["no-full", "no-max"],
@@ -142,14 +136,14 @@
                 y: "center",
                 width: 380,
                 height: 300,
-                mount: box
+                mount: content
             });
 
             // Enable Start Up button
             const btn = document.getElementById("startup");
             btn.classList.add("enabled");
             btn.onclick = () => {
-                window.location.href = "/os/";  // your working copy folder
+                window.location.href = "/os/";
             };
         });
     </script>
