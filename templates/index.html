@@ -12,32 +12,165 @@
             background: #111;
             color: #eee;
             font-family: system-ui, sans-serif;
-            text-align: center;
-            padding-top: 12vh;
+            margin: 0;
+            overflow: hidden; /* prevents scrollbars when dragging windows */
         }
+
+        /* Bootbox fallback (shown before JS loads) */
         .bootbox {
-            display: inline-block;
+            position: absolute;
+            top: 50vh;
+            left: 50vw;
+            transform: translate(-50%, -50%);
             padding: 2rem 3rem;
             border: 2px solid #444;
             border-radius: 10px;
             background: #1a1a1a;
             box-shadow: 0 0 20px #000 inset;
+            text-align: center;
+            width: 360px;
         }
+
         h1 {
             margin-bottom: 0.5rem;
             font-size: 2.4rem;
         }
+
         .subtitle {
             opacity: 0.8;
             margin-bottom: 1.5rem;
         }
+
+        /* Start Up button */
+        .startup-btn {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: 1px solid #555;
+            background: #222;
+            color: #777;
+            cursor: not-allowed;
+            transition: 0.2s;
+        }
+
+        .startup-btn.enabled {
+            background: #333;
+            color: #eee;
+            cursor: pointer;
+            border-color: #888;
+        }
+
+        .startup-btn.enabled:hover {
+            background: #444;
+        }
+
+        /* Corner links */
+        .corner-links {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            font-size: 0.85rem;
+            opacity: 0.85;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        .corner-links a {
+            color: #ccc;
+            text-decoration: none;
+        }
+
+        .corner-links a:hover {
+            color: #fff;
+        }
+
+        .license {
+            margin-top: 0.4rem;
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
-    <div class="bootbox">
+
+    <!-- Bootbox (converted to window on load) -->
+    <div id="bootbox" class="bootbox">
         <h1>📟 LaeGOS</h1>
         <div class="subtitle">Laegna Handheld Calculator OS</div>
         <p>The micro‑OS will appear here.</p>
+
+        <div id="startup" class="startup-btn">
+            Start Up
+        </div>
     </div>
+
+    <!-- Corner links -->
+    <div class="corner-links">
+        <div>
+            📓 <a href="https://github.com/tambetvali/LaeGOS" target="_blank">
+                LaeGOS Documentation & Theory Repository
+            </a>
+        </div>
+        <div>
+            💾 <a href="https://github.com/tambetvali/LaeGOS-Widgets" target="_blank">
+                LaeGOS Widgets — Source Code
+            </a>
+        </div>
+        <div class="license">
+            CC‑BY‑NC‑SA‑4.0 License — 
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank">
+                Read License
+            </a>
+        </div>
+    </div>
+
+    <!-- WinBox -->
+    <script src="{{ url_for('static', filename='js/winbox.bundle.min.js') }}"></script>
+
+    <script>
+        // Convert bootbox into a WinBox window
+        window.addEventListener("DOMContentLoaded", () => {
+            const box = document.getElementById("bootbox");
+
+            const win = new WinBox({
+                title: "📟 LaeGOS Boot",
+                class: ["no-full", "no-max"], // optional restrictions
+                background: "#222",
+                border: 1,
+                x: "center",
+                y: "center",
+                width: 380,
+                height: 300,
+                mount: box,
+                onmove: constrainWindow,
+                onresize: constrainWindow
+            });
+
+            // Enable Start Up button after window loads
+            const btn = document.getElementById("startup");
+            btn.classList.add("enabled");
+            btn.onclick = () => {
+                window.location.href = "/os/";  // your working copy folder
+            };
+        });
+
+        // Prevent dragging window off-screen
+        function constrainWindow(win) {
+            const el = win.dom;
+            const rect = el.getBoundingClientRect();
+
+            const minX = 0;
+            const minY = 0;
+            const maxX = window.innerWidth - rect.width;
+            const maxY = window.innerHeight - rect.height;
+
+            if (rect.left < minX) win.move(minX, rect.top);
+            if (rect.top < minY) win.move(rect.left, minY);
+            if (rect.left > maxX) win.move(maxX, rect.top);
+            if (rect.top > maxY) win.move(rect.left, maxY);
+        }
+    </script>
+
 </body>
 </html>
