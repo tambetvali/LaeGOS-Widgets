@@ -130,46 +130,28 @@
 
     <script>
         // Convert bootbox into a WinBox window
-        window.addEventListener("DOMContentLoaded", () => {
+        window.addEventListener("load", () => {
             const box = document.getElementById("bootbox");
 
             const win = new WinBox({
                 title: "📟 LaeGOS Boot",
-                class: ["no-full", "no-max"], // optional restrictions
+                class: ["no-full", "no-max"],
                 background: "#222",
                 border: 1,
                 x: "center",
                 y: "center",
                 width: 380,
                 height: 300,
-                mount: box,
-                onmove: constrainWindow,
-                onresize: constrainWindow
+                mount: box
             });
 
-            // Enable Start Up button after window loads
+            // Enable Start Up button
             const btn = document.getElementById("startup");
             btn.classList.add("enabled");
             btn.onclick = () => {
                 window.location.href = "/os/";  // your working copy folder
             };
         });
-
-        // Prevent dragging window off-screen
-        function constrainWindow(win) {
-            const el = win.dom;
-            const rect = el.getBoundingClientRect();
-
-            const minX = 0;
-            const minY = 0;
-            const maxX = window.innerWidth - rect.width;
-            const maxY = window.innerHeight - rect.height;
-
-            if (rect.left < minX) win.move(minX, rect.top);
-            if (rect.top < minY) win.move(rect.left, minY);
-            if (rect.left > maxX) win.move(maxX, rect.top);
-            if (rect.top > maxY) win.move(rect.left, maxY);
-        }
     </script>
 
 </body>
