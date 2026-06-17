@@ -7,7 +7,7 @@ app = Flask(
 )
 
 # Required for session cookies
-app.secret_key = "CHANGE_THIS_TO_RANDOM_SECRET"
+app.secret_key = "sdf98sdf98sdf98sdf98sdf98sdf98"
 
 # Add drafts folder
 app.jinja_loader.searchpath.append("drafts")
