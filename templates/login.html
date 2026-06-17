@@ -13,84 +13,28 @@
         }
         .container {
             padding: 1.5rem;
+            text-align: center;
         }
-        input {
-            padding: 0.4rem;
-            width: 240px;
-            margin-bottom: 0.6rem;
-        }
-        button {
-            padding: 0.5rem 1rem;
-            margin-right: 0.5rem;
-            background: #333;
-            color: #eee;
-            border: 1px solid #666;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #444;
-        }
-        .messages {
-            color: #ffb;
-            margin-bottom: 1rem;
+        .info {
+            opacity: 0.8;
+            margin-top: 1rem;
         }
     </style>
 </head>
 <body>
 <div class="container">
 
-    <h1>🔐 User Authentication</h1>
+    <h1>🔐 Redirecting to MongoDB Login…</h1>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="messages">
-          {% for m in messages %}
-            <div>{{ m }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+    <div class="info">
+        If you are not redirected automatically,  
+        <a href="{{ oauth_url }}" style="color:#9cf;">click here</a>.
+    </div>
 
-    {% if user %}
-        <p>Logged in as <strong>{{ user.email }}</strong></p>
-
-        {% if usage %}
-            <p>Storage usage: {{ usage.mb }} MB</p>
-        {% endif %}
-
-        {% if settings %}
-            <h3>Your Settings</h3>
-            <ul>
-                {% for key, value in settings.items() %}
-                    <li><code>{{ key }}</code>: {{ value }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        <form method="post">
-            <button name="action" value="logout">Log out / switch user</button>
-        </form>
-
-        <form method="post" style="margin-top: 1rem;">
-            <button name="action" value="reset"
-                    onclick="return confirm('Reset your LaeGOS data?')">
-                Reset My LaeGOS Data
-            </button>
-        </form>
-
-    {% else %}
-        <p>No user logged in.</p>
-
-        <form method="post">
-            <input type="email" name="email" placeholder="Email" required>
-
-            <div>
-                <button name="action" value="login">Log in</button>
-                <button name="action" value="register">Register new user</button>
-            </div>
-        </form>
-    {% endif %}
+    <script>
+        // Auto‑redirect to MongoDB OAuth
+        window.location.href = "{{ oauth_url }}";
+    </script>
 
 </div>
 </body>
