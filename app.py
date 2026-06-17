@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+from login.login import login_bp
 
 app = Flask(
     __name__,
