@@ -1,5 +1,4 @@
 from flask import Flask, render_template, session
-from login.routes import login_bp
 
 app = Flask(
     __name__,
