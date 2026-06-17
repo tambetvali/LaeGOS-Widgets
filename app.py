@@ -1,6 +1,5 @@
 from flask import Flask, render_template, session
 from login.routes import login_bp
-from login.mongo import get_user_by_id
 
 app = Flask(
     __name__,
@@ -19,10 +18,11 @@ app.register_blueprint(login_bp)
 
 @app.context_processor
 def inject_current_user():
-    """Make current_user available in all templates."""
-    user_id = session.get("user_id")
-    user = get_user_by_id(user_id) if user_id else None
-    return {"current_user": user}
+    """
+    Make current_user available in all templates.
+    This is the MongoDB OAuth profile stored in session["user"].
+    """
+    return {"current_user": session.get("user")}
 
 
 @app.route("/")
