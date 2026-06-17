@@ -6,7 +6,7 @@ import os
 
 login_bp = Blueprint("login", __name__)
 
-@login_bp.route("/login")
+@login_bp.route("/login/")
 def login_test():
     uri = os.environ.get("MONGO_URI")
     message = None
