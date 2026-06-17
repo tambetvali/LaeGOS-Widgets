@@ -1,0 +1,7 @@
+# login/defaults.py
+
+DEFAULT_SETTINGS = {
+    "WINDOW.DEFAULTPOSITION": (100, 100),
+    "WINDOW.DEFAULTSIZE": (800, 600),
+    "OS.FORMAT": "LaeGOS",
+}
