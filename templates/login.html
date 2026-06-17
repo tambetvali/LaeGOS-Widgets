@@ -1,0 +1,64 @@
+{% extends "base.html" %} {# or whatever you use #}
+
+{% block content %}
+<h1>User Authentication</h1>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="messages">
+      {% for m in messages %}
+        <li>{{ m }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+{% if user %}
+  <p>Logged in as <strong>{{ user.email }}</strong></p>
+
+  {% if usage %}
+    <p>Storage usage: {{ usage.mb }} MB (approx.)</p>
+  {% endif %}
+
+  {% if settings %}
+    <h3>Your settings</h3>
+    <ul>
+      {% for key, value in settings.items() %}
+        <li><code>{{ key }}</code>: {{ value }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post">
+    <button type="submit" name="action" value="logout">
+      Log out / switch user
+    </button>
+  </form>
+
+  <form method="post" style="margin-top: 1em;">
+    <button type="submit" name="action" value="reset"
+            onclick="return confirm('Reset your LaeGOS data? This cannot be undone.')">
+      Reset my LaeGOS data
+    </button>
+  </form>
+
+{% else %}
+  <p>No user is currently logged in.</p>
+
+  <form method="post">
+    <label>Email:
+      <input type="email" name="email" required>
+    </label>
+
+    <div style="margin-top: 1em;">
+      <button type="submit" name="action" value="login">
+        Log in
+      </button>
+      <button type="submit" name="action" value="register">
+        Register new user
+      </button>
+    </div>
+  </form>
+{% endif %}
+
+{% endblock %}
