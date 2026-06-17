@@ -1,64 +1,97 @@
-{% extends "base.html" %} {# or whatever you use #}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>User Authentication</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            margin: 0;
+        }
+        .container {
+            padding: 1.5rem;
+        }
+        input {
+            padding: 0.4rem;
+            width: 240px;
+            margin-bottom: 0.6rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            background: #333;
+            color: #eee;
+            border: 1px solid #666;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #444;
+        }
+        .messages {
+            color: #ffb;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
 
-{% block content %}
-<h1>User Authentication</h1>
+    <h1>🔐 User Authentication</h1>
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class="messages">
-      {% for m in messages %}
-        <li>{{ m }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="messages">
+          {% for m in messages %}
+            <div>{{ m }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
-{% if user %}
-  <p>Logged in as <strong>{{ user.email }}</strong></p>
+    {% if user %}
+        <p>Logged in as <strong>{{ user.email }}</strong></p>
 
-  {% if usage %}
-    <p>Storage usage: {{ usage.mb }} MB (approx.)</p>
-  {% endif %}
+        {% if usage %}
+            <p>Storage usage: {{ usage.mb }} MB</p>
+        {% endif %}
 
-  {% if settings %}
-    <h3>Your settings</h3>
-    <ul>
-      {% for key, value in settings.items() %}
-        <li><code>{{ key }}</code>: {{ value }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+        {% if settings %}
+            <h3>Your Settings</h3>
+            <ul>
+                {% for key, value in settings.items() %}
+                    <li><code>{{ key }}</code>: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 
-  <form method="post">
-    <button type="submit" name="action" value="logout">
-      Log out / switch user
-    </button>
-  </form>
+        <form method="post">
+            <button name="action" value="logout">Log out / switch user</button>
+        </form>
 
-  <form method="post" style="margin-top: 1em;">
-    <button type="submit" name="action" value="reset"
-            onclick="return confirm('Reset your LaeGOS data? This cannot be undone.')">
-      Reset my LaeGOS data
-    </button>
-  </form>
+        <form method="post" style="margin-top: 1rem;">
+            <button name="action" value="reset"
+                    onclick="return confirm('Reset your LaeGOS data?')">
+                Reset My LaeGOS Data
+            </button>
+        </form>
 
-{% else %}
-  <p>No user is currently logged in.</p>
+    {% else %}
+        <p>No user logged in.</p>
 
-  <form method="post">
-    <label>Email:
-      <input type="email" name="email" required>
-    </label>
+        <form method="post">
+            <input type="email" name="email" placeholder="Email" required>
 
-    <div style="margin-top: 1em;">
-      <button type="submit" name="action" value="login">
-        Log in
-      </button>
-      <button type="submit" name="action" value="register">
-        Register new user
-      </button>
-    </div>
-  </form>
-{% endif %}
+            <div>
+                <button name="action" value="login">Log in</button>
+                <button name="action" value="register">Register new user</button>
+            </div>
+        </form>
+    {% endif %}
 
-{% endblock %}
+</div>
+</body>
+</html>
