@@ -2,21 +2,23 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 import uuid
 
-from login_config import (
+from login.login_config import (
     MONGO_URI,
     DB_NAME,
     USERS_COLLECTION,
     SESSIONS_COLLECTION,
 )
 
+# Connect to MongoDB Atlas via environment variable
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
-users = db[USERS_COLLECTION]
-sessions = db[SESSIONS_COLLECTION]
+
+users_col = db[USERS_COLLECTION]
+sessions_col = db[SESSIONS_COLLECTION]
 
 
 def get_user_by_email(email: str):
-    return users.find_one({"email": email})
+    return users_col.find_one({"email": email})
 
 
 def create_user(email: str, name: str, picture: str):
@@ -27,12 +29,12 @@ def create_user(email: str, name: str, picture: str):
         "created_at": datetime.utcnow(),
         "last_login": datetime.utcnow(),
     }
-    users.insert_one(user)
+    users_col.insert_one(user)
     return user
 
 
 def update_last_login(email: str):
-    users.update_one(
+    users_col.update_one(
         {"email": email},
         {"$set": {"last_login": datetime.utcnow()}}
     )
@@ -46,9 +48,9 @@ def create_session(email: str):
         "created_at": datetime.utcnow(),
         "expires_at": datetime.utcnow() + timedelta(days=7),
     }
-    sessions.insert_one(session)
+    sessions_col.insert_one(session)
     return session_id
 
 
 def get_session(session_id: str):
-    return sessions.find_one({"session_id": session_id})
+    return sessions_col.find_one({"session_id": session_id})
