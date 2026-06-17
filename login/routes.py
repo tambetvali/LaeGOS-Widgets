@@ -1,13 +1,13 @@
 from flask import Blueprint, redirect, request, session, url_for
 from authlib.integrations.flask_client import OAuth
 
-from login_config import (
+from login.login_config import (
     SESSION_SECRET_KEY,
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
 )
 
-from mongo import (
+from login.mongo import (
     get_user_by_email,
     create_user,
     update_last_login,
@@ -36,29 +36,17 @@ def init_oauth(setup_state):
 
 
 # ----------------------------
-# /login
+# /login/ (POST from your form)
 # ----------------------------
-@login_bp.route("/login")
-def login():
-    redirect_uri = url_for("login.callback", _external=True)
-    return google.authorize_redirect(redirect_uri)
+@login_bp.route("/login/", methods=["POST"])
+def login_page():
+    email = request.form.get("email")
+    name = request.form.get("name", "")
+    picture = request.form.get("picture", "")
 
+    existing = get_user_by_email(email)
 
-# ----------------------------
-# /login/callback
-# ----------------------------
-@login_bp.route("/login/callback")
-def callback():
-    token = google.authorize_access_token()
-    userinfo = google.parse_id_token(token)
-
-    email = userinfo.get("email")
-    name = userinfo.get("name")
-    picture = userinfo.get("picture")
-
-    user = get_user_by_email(email)
-
-    if not user:
+    if not existing:
         create_user(email, name, picture)
     else:
         update_last_login(email)
