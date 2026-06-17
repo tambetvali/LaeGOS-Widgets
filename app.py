@@ -1,27 +1,12 @@
-from flask import Flask, render_template, session
+from flask import Flask, render_template
 
 app = Flask(
     __name__,
-    template_folder="templates",
+    template_folder="templates",      # your normal templates
 )
 
-# Required for session cookies
-app.secret_key = "sdf98sdf98sdf98sdf98sdf98sdf98"
-
-# Add drafts folder
+# Add an additional folder for drafts
 app.jinja_loader.searchpath.append("drafts")
-
-# Register login blueprint
-app.register_blueprint(login_bp)
-
-
-@app.context_processor
-def inject_current_user():
-    """
-    Make current_user available in all templates.
-    This is the MongoDB OAuth profile stored in session["user"].
-    """
-    return {"current_user": session.get("user")}
 
 
 @app.route("/")
@@ -31,4 +16,5 @@ def home():
 
 @app.route("/drafts/<path:filename>")
 def drafts(filename):
+    # This will look for the file inside the "drafts" folder
     return render_template(filename)
