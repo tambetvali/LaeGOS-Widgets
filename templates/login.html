@@ -2,40 +2,36 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>User Authentication</title>
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <title>MongoDB Login Test</title>
     <style>
         body {
             background: #111;
             color: #eee;
             font-family: system-ui, sans-serif;
-            margin: 0;
+            padding: 2rem;
         }
-        .container {
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .info {
-            opacity: 0.8;
+        .msg {
             margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+        }
+        .success {
+            background: #0a0;
+        }
+        .error {
+            background: #a00;
         }
     </style>
 </head>
 <body>
-<div class="container">
 
-    <h1>🔐 Redirecting to MongoDB Login…</h1>
+<h1>MongoDB Connection Test</h1>
 
-    <div class="info">
-        If you are not redirected automatically,  
-        <a href="{{ oauth_url }}" style="color:#9cf;">click here</a>.
+{% if message %}
+    <div class="msg {% if 'SUCCESS' in message %}success{% else %}error{% endif %}">
+        {{ message }}
     </div>
+{% endif %}
 
-    <script>
-        // Auto‑redirect to MongoDB OAuth
-        window.location.href = "{{ oauth_url }}";
-    </script>
-
-</div>
 </body>
 </html>
