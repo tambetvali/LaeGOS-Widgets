@@ -9,7 +9,7 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 
 # MongoDB connection string
 # Example: mongodb+srv://user:pass@cluster.mongodb.net/
-MONGO_URI = os.environ.get("MONGO_URI", "")
+MONGO_URI = "mongodb+srv://tambetvali_db_user:Gkij5mTw2RrXu564@laegos.tlxpwqg.mongodb.net/?appName=LaeGOS"
 
 # Database names
 DB_NAME = "laegos"
