@@ -16,7 +16,6 @@
             overflow: hidden;
         }
 
-        /* Content inside the WinBox window */
         .bootcontent {
             padding: 1.6rem 2rem;
             text-align: center;
@@ -43,7 +42,6 @@
             margin-bottom: 1.5rem;
         }
 
-        /* Start Up button */
         .startup-btn {
             display: inline-block;
             padding: 0.6rem 1.2rem;
@@ -67,7 +65,6 @@
             background: #444;
         }
 
-        /* Corner links */
         .corner-links {
             position: fixed;
             bottom: 12px;
@@ -93,11 +90,6 @@
             opacity: 0.7;
         }
 
-        .user-info {
-            margin-bottom: 1rem;
-            line-height: 1.4;
-        }
-
         .login-btn {
             display: inline-block;
             padding: 0.5rem 1rem;
@@ -111,6 +103,11 @@
 
         .login-btn:hover {
             background: #444;
+        }
+
+        .user-info {
+            margin-bottom: 1rem;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -148,7 +145,7 @@
 
         {% else %}
             <p>No user logged in.</p>
-            <a href="/login/" class="login-btn">Log in</a>
+            <a href="/login/" class="login-btn">Log in with MongoDB</a>
         {% endif %}
     </div>
 
@@ -165,7 +162,7 @@
             </a>
         </div>
         <div class="license">
-            CC‑BY‑NC‑SA‑4.0 License — 
+            CC‑BY‑NC‑SA‑4.0 License —
             <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en" target="_blank">
                 Read License
             </a>
@@ -203,7 +200,7 @@
             const userContent = document.getElementById("usercontent");
             userContent.style.display = "block";
 
-            const winUser = new WinBox({
+            new WinBox({
                 title: "👤 User",
                 class: ["no-full", "no-max"],
                 background: "#222",
