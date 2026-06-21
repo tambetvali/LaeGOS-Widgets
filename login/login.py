@@ -2,8 +2,6 @@ from flask import Blueprint, redirect, request, session, url_for
 import requests
 import json
 from github_app import (
-    get_installation_id_for_user,
-    get_installation_token_for_user,
     get_user_metadata,
     update_user_metadata
 )
