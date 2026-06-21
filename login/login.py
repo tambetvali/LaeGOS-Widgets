@@ -11,7 +11,6 @@ GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
 
 @login_bp.route("/login")
 def login():
-    # request full user + email + gist access
     return redirect(
         "https://github.com/login/oauth/authorize"
         f"?client_id={GITHUB_CLIENT_ID}&scope=read:user,user:email,gist"
@@ -36,19 +35,15 @@ def callback():
     if not access_token:
         return "GitHub OAuth failed", 400
 
-    # fetch basic user profile
+    # Fetch GitHub user profile
     user_res = requests.get(
         "https://api.github.com/user",
         headers={"Authorization": f"Bearer {access_token}"},
     )
     github_user = user_res.json()
-    username = github_user.get("login")
 
-    if not username:
-        return "GitHub user fetch failed", 400
-
-    # fetch email if missing
-    if "email" not in github_user or github_user["email"] is None:
+    # Fetch email if missing
+    if not github_user.get("email"):
         email_res = requests.get(
             "https://api.github.com/user/emails",
             headers={"Authorization": f"Bearer {access_token}"},
@@ -57,12 +52,12 @@ def callback():
         primary = next((e["email"] for e in emails if e.get("primary")), None)
         github_user["email"] = primary
 
-    # store user + token + full profile
-    session["user"] = username
-    session["github_token"] = access_token
+    # Store raw GitHub JSON
     session["github_user"] = github_user
+    session["user"] = github_user.get("login")
+    session["github_token"] = access_token
 
-    # load or create registry Gist
+    # Load or create registry Gist
     gist_id, registry = load_registry(access_token)
     session["gist_id"] = gist_id
     session["registry"] = registry
@@ -78,7 +73,19 @@ def logout():
     return redirect("/")
 
 
+# ⭐ THIS IS THE ROUTE YOU ASKED ABOUT
 @login_bp.route("/profile")
 def profile():
-    github_user = session.get("github_user", {})
-    return render_template("profile.html", github_user=github_user)
+    github_user = session.get("github_user")
+
+    if github_user:
+        user = {
+            "username": github_user.get("login"),
+            "email": github_user.get("email"),
+            "name": github_user.get("name"),
+            "picture": github_user.get("avatar_url"),
+        }
+    else:
+        user = None
+
+    return render_template("profile.html", user=user)
