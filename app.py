@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from login.login import login_bp
+from login.driver import get_current_user
 
 import os, secrets
 
@@ -21,6 +22,11 @@ app.register_blueprint(login_bp, url_prefix="/auth")
 
 # Add an additional folder for drafts
 app.jinja_loader.searchpath.append("drafts")
+
+
+@app.context_processor
+def inject_user():
+    return {"current_user": get_current_user()}
 
 
 @app.route("/")
