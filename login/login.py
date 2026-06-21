@@ -75,7 +75,7 @@ def github_callback():
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
         data={
-            "client_id": GITHUB_CLIENT_ID",
+            "client_id": GITHUB_CLIENT_ID,
             "client_secret": GITHUB_CLIENT_SECRET,
             "code": code,
             "redirect_uri": callback_url,
