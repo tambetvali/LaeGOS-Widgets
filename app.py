@@ -27,16 +27,25 @@ app.jinja_loader.searchpath.append("drafts")
 
 @app.context_processor
 def inject_user():
-    user = get_current_user()
+    github_user = session.get("github_user")
     mode = get_registry_value("SYSTEM.DAYNIGHTMODE") or "Night"
-    github_user = session.get("github_user", {})
+
+    if github_user:
+        user = {
+            "username": github_user.get("login"),
+            "email": github_user.get("email"),
+            "name": github_user.get("name"),
+            "picture": github_user.get("avatar_url"),
+        }
+    else:
+        user = None
 
     return {
-        "current_user": user,
+        "user": user,                # <-- templates expect this
+        "current_user": user,        # backward compatibility
+        "github_user": github_user,  # raw GitHub JSON
         "current_mode": mode,
-        "github_user": github_user,
     }
-
 
 @app.route("/")
 def home():
