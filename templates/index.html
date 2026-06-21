@@ -7,24 +7,35 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 
     <style>
+        :root {
+            --bg: #111;
+            --win: #222;
+            --text: #eee;
+        }
+        body.day {
+            --bg: #f4f4f4;
+            --win: #ffffff;
+            --text: #111;
+        }
+
         html, body {
             height: 100%;
-            background: #111;
             margin: 0;
             overflow: auto;
-            color: #eee;
+            background: var(--bg);
+            color: var(--text);
             font-family: system-ui, sans-serif;
         }
 
         #root {
             min-height: 100vh;
-            background: #111;
+            background: var(--bg);
         }
 
         .wincontent {
             padding: 1.4rem 1.8rem;
-            background: #222;
-            height: 100%;
+            background: var(--win);
+            min-height: 100%;
             box-sizing: border-box;
         }
 
@@ -39,7 +50,12 @@
             text-decoration: none;
             margin-right: 0.4rem;
         }
-        .btn:hover { background: #444; }
+        body.day .btn {
+            background: #ddd;
+            border-color: #aaa;
+            color: #111;
+        }
+        .btn:hover { filter: brightness(1.1); }
 
         .corner-links {
             position: fixed;
@@ -51,10 +67,12 @@
             line-height: 1.4;
         }
         .corner-links a { color: #ccc; text-decoration: none; }
+        body.day .corner-links a { color: #555; }
         .corner-links a:hover { color: #fff; }
+        body.day .corner-links a:hover { color: #000; }
     </style>
 </head>
-<body>
+<body class="{{ 'day' if current_mode == 'Day' else 'night' }}">
 <div id="root">
 
     <div id="boot" class="wincontent">
@@ -69,7 +87,8 @@
             <strong>{{ current_user.email }}</strong><br>
             {% if current_user.name %}{{ current_user.name }}<br>{% endif %}
             {% if current_user.picture %}
-                <img src="{{ current_user.picture }}" width="64" height="64" style="border-radius:50%; margin-top:0.5rem;">
+                <img src="{{ current_user.picture }}" width="64" height="64"
+                     style="border-radius:50%; margin-top:0.5rem;">
             {% endif %}
             <br><br>
             <a href="/auth/profile" class="btn">Manage Account</a>
@@ -78,6 +97,7 @@
         {% else %}
             <p>No user logged in.</p>
             <a href="/auth/login" class="btn">Log in with GitHub</a>
+            <button id="toggle-mode" class="btn">🌗 Mode</button>
         {% endif %}
     </div>
 
@@ -93,20 +113,27 @@
 
 <script>
 window.addEventListener("load", () => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-    const centerX = window.innerWidth / 2 - 200;
-    const topY    = window.innerHeight * 0.15;
-    const belowY  = topY + 340;
+    const bootWidth  = Math.min(420, vw - 40);
+    const bootHeight = Math.min(300, vh * 0.35);
+    const userWidth  = bootWidth;
+    const userHeight = Math.min(260, vh * 0.35);
+
+    const centerX = (vw - bootWidth) / 2;
+    const topY    = Math.max(20, vh * 0.12);
+    const belowY  = Math.min(vh - userHeight - 20, topY + bootHeight + 20);
 
     new WinBox({
         title: "📟 LaeGOS Boot",
         class: ["no-full", "no-max"],
-        background: "#222",
+        background: "var(--win)",
         border: 1,
         x: centerX,
         y: topY,
-        width: 400,
-        height: 300,
+        width: bootWidth,
+        height: bootHeight,
         mount: document.getElementById("boot")
     });
 
@@ -116,12 +143,12 @@ window.addEventListener("load", () => {
     new WinBox({
         title: "👤 User",
         class: ["no-full", "no-max"],
-        background: "#222",
+        background: "var(--win)",
         border: 1,
         x: centerX,
         y: belowY,
-        width: 400,
-        height: 260,
+        width: userWidth,
+        height: userHeight,
         mount: userContent
     });
 
@@ -132,7 +159,10 @@ window.addEventListener("load", () => {
     const toggle = document.getElementById("toggle-mode");
     if (toggle) {
         toggle.onclick = () => {
-            fetch("/auth/toggle-mode", {method: "POST"}).then(() => location.reload());
+            fetch("/auth/toggle-mode", {method: "POST"}).then(() => {
+                document.body.classList.toggle("day");
+                document.body.classList.toggle("night");
+            });
         };
     }
 });
