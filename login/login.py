@@ -7,6 +7,7 @@ from github_app import (
     get_user_metadata,
     update_user_metadata
 )
+import os
 
 login_bp = Blueprint("login_bp", __name__)
 
