@@ -1,12 +1,7 @@
 from flask import Blueprint, redirect, request, session
 import requests
 import os
-from github_app import (
-    get_installation_id,
-    get_installation_token,
-    load_registry,
-    save_registry
-)
+from github_gist import load_registry, save_registry
 
 login_bp = Blueprint("login_bp", __name__)
 
@@ -17,7 +12,7 @@ GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
 @login_bp.route("/login")
 def login():
     return redirect(
-        f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=read:user"
+        f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=read:user,gist"
     )
 
 
@@ -48,19 +43,10 @@ def callback():
         return "GitHub user fetch failed", 400
 
     session["user"] = username
+    session["github_token"] = access_token
 
-    installation_id = get_installation_id(username)
-    if not installation_id:
-        return "Please authorize the LaeGOS GitHub App", 400
-
-    installation_token = get_installation_token(installation_id)
-    if not installation_token:
-        return "Failed to get installation token", 400
-
-    registry = load_registry(installation_token, username)
-    if not registry:
-        registry = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
-
+    gist_id, registry = load_registry(access_token)
+    session["gist_id"] = gist_id
     session["registry"] = registry
 
     return redirect("/")
@@ -80,11 +66,13 @@ def save_registry_route():
         session["anon_registry"] = request.json
         return {"status": "saved-anon"}
 
-    username = session["user"]
-    installation_id = get_installation_id(username)
-    installation_token = get_installation_token(installation_id)
+    access_token = session.get("github_token")
+    gist_id = session.get("gist_id")
 
-    save_registry(installation_token, username, request.json)
+    if not access_token or not gist_id:
+        return {"status": "error", "message": "Missing GitHub token or Gist ID"}, 400
+
+    save_registry(access_token, gist_id, request.json)
     session["registry"] = request.json
 
-    return {"status": "saved-github"}
+    return {"status": "saved-gist"}
