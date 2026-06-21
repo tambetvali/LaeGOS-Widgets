@@ -9,6 +9,9 @@ GITHUB_APP_ID = os.environ.get("GITHUB_APP_ID")
 GITHUB_APP_PRIVATE_KEY = os.environ.get("GITHUB_APP_PRIVATE_KEY")
 
 
+# ---------------------------
+#  JWT FOR GITHUB APP
+# ---------------------------
 def _get_app_jwt():
     """
     Create a JWT for the GitHub App using its private key.
@@ -28,52 +31,101 @@ def _get_app_jwt():
         GITHUB_APP_PRIVATE_KEY,
         algorithm="RS256",
     )
-    # PyJWT >= 2 returns str, older returns bytes
+
     if isinstance(token, bytes):
         token = token.decode("utf-8")
+
     return token
 
 
-def _get_installation_id_for_user(oauth_token):
+# ---------------------------
+#  INSTALLATION ID
+# ---------------------------
+def get_installation_id_for_user(username):
     """
-    Using the user's OAuth token, find the installation of this App
-    for that user.
+    Using the GitHub App JWT, list installations and find the one
+    that belongs to this user.
     """
-    headers = {
-        "Authorization": f"Bearer {oauth_token}",
-        "Accept": "application/vnd.github+json",
-    }
-    resp = requests.get(f"{GITHUB_API}/user/installations", headers=headers)
-    if resp.status_code != 200:
-        return None
-
-    data = resp.json() or {}
-    installations = data.get("installations", [])
-    if not installations:
-        return None
-
-    # If multiple, pick the first; usually there is one per user/org context
-    return installations[0].get("id")
-
-
-def get_installation_token_for_user(oauth_token):
-    """
-    Given a user's OAuth token, obtain an installation access token
-    for this GitHub App, scoped to that user.
-    """
-    installation_id = _get_installation_id_for_user(oauth_token)
-    if not installation_id:
-        return None
-
     app_jwt = _get_app_jwt()
+
     headers = {
         "Authorization": f"Bearer {app_jwt}",
         "Accept": "application/vnd.github+json",
     }
+
+    resp = requests.get(f"{GITHUB_API}/app/installations", headers=headers)
+    if resp.status_code != 200:
+        return None
+
+    installations = resp.json() or []
+
+    for inst in installations:
+        account = inst.get("account", {})
+        if account.get("login") == username:
+            return inst.get("id")
+
+    return None
+
+
+# ---------------------------
+#  INSTALLATION TOKEN
+# ---------------------------
+def get_installation_token_for_user(installation_id):
+    """
+    Given an installation ID, obtain an installation access token.
+    """
+    app_jwt = _get_app_jwt()
+
+    headers = {
+        "Authorization": f"Bearer {app_jwt}",
+        "Accept": "application/vnd.github+json",
+    }
+
     url = f"{GITHUB_API}/app/installations/{installation_id}/access_tokens"
     resp = requests.post(url, headers=headers, json={})
+
     if resp.status_code != 201:
         return None
 
-    data = resp.json() or {}
-    return data.get("token")
+    return resp.json().get("token")
+
+
+# ---------------------------
+#  READ METADATA
+# ---------------------------
+def get_user_metadata(installation_token, username):
+    """
+    Read GitHub user metadata for this user.
+    """
+    headers = {
+        "Authorization": f"Bearer {installation_token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    resp = requests.get(f"{GITHUB_API}/users/{username}/metadata", headers=headers)
+
+    if resp.status_code != 200:
+        return {}
+
+    return resp.json().get("LaeGOS", {})
+
+
+# ---------------------------
+#  WRITE METADATA
+# ---------------------------
+def update_user_metadata(installation_token, username, registry):
+    """
+    Write registry dict into GitHub user metadata under the LaeGOS namespace.
+    """
+    headers = {
+        "Authorization": f"Bearer {installation_token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    payload = {"LaeGOS": registry}
+
+    requests.patch(
+        f"{GITHUB_API}/users/{username}/metadata",
+        headers=headers,
+        json=payload,
+    )
