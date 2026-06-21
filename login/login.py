@@ -2,19 +2,18 @@ from flask import Blueprint, redirect, request, session
 import requests
 import os
 from github_app import (
-    get_user_metadata,
-    update_user_metadata
+    get_installation_id,
+    get_installation_token,
+    load_registry,
+    save_registry
 )
 
 login_bp = Blueprint("login_bp", __name__)
 
-GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
+GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]
+GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
 
 
-# ---------------------------
-#  LOGIN START
-# ---------------------------
 @login_bp.route("/login")
 def login():
     return redirect(
@@ -22,14 +21,10 @@ def login():
     )
 
 
-# ---------------------------
-#  GITHUB CALLBACK
-# ---------------------------
 @login_bp.route("/callback")
 def callback():
     code = request.args.get("code")
 
-    # Exchange code for OAuth token
     token_res = requests.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
@@ -40,43 +35,37 @@ def callback():
         },
     )
 
-    token_json = token_res.json()
-    access_token = token_json.get("access_token")
-
+    access_token = token_res.json().get("access_token")
     if not access_token:
         return "GitHub OAuth failed", 400
 
-    # Get user info
     user_res = requests.get(
         "https://api.github.com/user",
         headers={"Authorization": f"Bearer {access_token}"},
     )
-    user = user_res.json()
-    username = user.get("login")
-
+    username = user_res.json().get("login")
     if not username:
         return "GitHub user fetch failed", 400
 
-    # Store user and OAuth token in session
     session["user"] = username
-    session["github_token"] = access_token
 
-    # Load metadata using OAuth token directly
-    metadata = get_user_metadata(access_token, username)
+    installation_id = get_installation_id(username)
+    if not installation_id:
+        return "Please authorize the LaeGOS GitHub App", 400
 
-    # If metadata empty, fallback to anon registry
-    if not metadata:
-        metadata = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
+    installation_token = get_installation_token(installation_id)
+    if not installation_token:
+        return "Failed to get installation token", 400
 
-    # Save registry into session
-    session["registry"] = metadata
+    registry = load_registry(installation_token, username)
+    if not registry:
+        registry = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
+
+    session["registry"] = registry
 
     return redirect("/")
 
 
-# ---------------------------
-#  LOGOUT
-# ---------------------------
 @login_bp.route("/logout")
 def logout():
     anon = session.get("anon_registry", {})
@@ -85,19 +74,17 @@ def logout():
     return redirect("/")
 
 
-# ---------------------------
-#  SAVE REGISTRY
-# ---------------------------
 @login_bp.route("/save_registry", methods=["POST"])
-def save_registry():
+def save_registry_route():
     if "user" not in session:
         session["anon_registry"] = request.json
         return {"status": "saved-anon"}
 
     username = session["user"]
-    oauth_token = session["github_token"]
+    installation_id = get_installation_id(username)
+    installation_token = get_installation_token(installation_id)
 
-    update_user_metadata(oauth_token, username, request.json)
+    save_registry(installation_token, username, request.json)
     session["registry"] = request.json
 
     return {"status": "saved-github"}
