@@ -1,17 +1,15 @@
-from flask import Blueprint, redirect, request, session, url_for
+from flask import Blueprint, redirect, request, session
 import requests
-import json
+import os
 from github_app import (
     get_user_metadata,
     update_user_metadata
 )
-import os
 
 login_bp = Blueprint("login_bp", __name__)
 
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
-GITHUB_APP_ID = os.environ.get("GITHUB_APP_ID")
 
 
 # ---------------------------
@@ -63,18 +61,8 @@ def callback():
     session["user"] = username
     session["github_token"] = access_token
 
-    # Get installation ID
-    installation_id = get_installation_id_for_user(username)
-    if not installation_id:
-        return "GitHub App is not installed for this user", 400
-
-    # Get installation token
-    installation_token = get_installation_token_for_user(installation_id)
-    if not installation_token:
-        return "Failed to get installation token", 400
-
-    # Load metadata
-    metadata = get_user_metadata(installation_token, username)
+    # Load metadata using OAuth token directly
+    metadata = get_user_metadata(access_token, username)
 
     # If metadata empty, fallback to anon registry
     if not metadata:
@@ -87,39 +75,29 @@ def callback():
 
 
 # ---------------------------
-#  LOGOUT (FIXED)
+#  LOGOUT
 # ---------------------------
 @login_bp.route("/logout")
 def logout():
-    # Preserve anonymous registry
     anon = session.get("anon_registry", {})
-
-    # Clear everything
     session.clear()
-
-    # Restore anonymous registry
     session["anon_registry"] = anon
-
     return redirect("/")
 
 
 # ---------------------------
-#  SAVE REGISTRY TO GITHUB
+#  SAVE REGISTRY
 # ---------------------------
 @login_bp.route("/save_registry", methods=["POST"])
 def save_registry():
     if "user" not in session:
-        # Save to anon registry
         session["anon_registry"] = request.json
         return {"status": "saved-anon"}
 
     username = session["user"]
+    oauth_token = session["github_token"]
 
-    installation_id = get_installation_id_for_user(username)
-    installation_token = get_installation_token_for_user(installation_id)
-
-    update_user_metadata(installation_token, username, request.json)
-
+    update_user_metadata(oauth_token, username, request.json)
     session["registry"] = request.json
 
     return {"status": "saved-github"}
