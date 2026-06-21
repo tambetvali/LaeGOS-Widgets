@@ -1,33 +1,42 @@
 from flask import session
 import requests
 
+from github_app import get_installation_token_for_user
+
 GITHUB_API = "https://api.github.com"
 METADATA_NAMESPACE = "LaeGOS"
 
 
-def _get_token():
+def _get_oauth_token():
     return session.get("github_token")
+
+
+def _get_app_installation_token():
+    oauth_token = _get_oauth_token()
+    if not oauth_token:
+        return None
+    return get_installation_token_for_user(oauth_token)
 
 
 def _sync_registry_to_github(registry):
     """
-    Persist the registry dict into GitHub user metadata under our namespace.
-    Silent on failure; session still holds the correct values.
+    Persist the registry dict into GitHub user metadata under our namespace,
+    using the GitHub App installation token (user-to-server).
     """
-    token = _get_token()
-    if not token:
+    app_token = _get_app_installation_token()
+    if not app_token:
         return
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
+        "Authorization": f"Bearer {app_token}",
+        "Accept": "application/vnd.github+json",
     }
     payload = {METADATA_NAMESPACE: registry}
 
     try:
         requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
     except Exception:
-        # We don't break UX if GitHub metadata write fails
+        # Do not break UX if GitHub metadata write fails
         pass
 
 
@@ -72,7 +81,7 @@ def set_registry_value(key, value):
         user["registry"] = registry
         session["user"] = user
 
-        # Persist to GitHub metadata
+        # Persist to GitHub metadata via App
         _sync_registry_to_github(registry)
     else:
         # Anonymous per-computer registry
