@@ -7,7 +7,7 @@ app = Flask(
 )
 
 # Register the login blueprint
-app.register_blueprint(login_bp)
+app.register_blueprint(login_bp, url_prefix="/auth")
 
 # Add an additional folder for drafts
 app.jinja_loader.searchpath.append("drafts")
