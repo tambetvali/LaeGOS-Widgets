@@ -39,9 +39,6 @@ def _sync_registry_to_github(registry):
         pass
 
 
-# -----------------------------
-# LOGIN
-# -----------------------------
 @login_bp.route("/login")
 def login():
     callback_url = url_for("login.github_callback", _external=True)
@@ -54,9 +51,6 @@ def login():
     return redirect(github_auth_url)
 
 
-# -----------------------------
-# CALLBACK
-# -----------------------------
 @login_bp.route("/callback")
 def github_callback():
     code = request.args.get("code")
@@ -91,7 +85,6 @@ def github_callback():
     emails = requests.get(f"{GITHUB_API}/user/emails", headers=headers).json()
     primary_email = next((e["email"] for e in emails if e.get("primary")), None)
 
-    # Base user info
     session["user"] = {
         "email": primary_email,
         "name": user.get("name"),
@@ -101,18 +94,15 @@ def github_callback():
         "registry": {},
     }
 
-    # Load registry from GitHub metadata
     registry = _load_registry_from_github()
     if not registry:
-        registry = {"SYSTEM.DAYNIGHTMODE": "Night"}
+        # fallback to per-computer defaults if present
+        registry = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
     session["user"]["registry"] = registry
 
     return redirect(url_for("login.profile"))
 
 
-# -----------------------------
-# PROFILE PAGE
-# -----------------------------
 @login_bp.route("/profile")
 def profile():
     user = session.get("user")
@@ -122,20 +112,13 @@ def profile():
     return render_template("profile.html", user=user, current_mode=mode)
 
 
-# -----------------------------
-# LOGOUT
-# -----------------------------
 @login_bp.route("/logout")
 def logout():
-    # Keep anon_registry so per-computer defaults are restored
     session.pop("github_token", None)
     session.pop("user", None)
     return redirect("/")
 
 
-# -----------------------------
-# DAY/NIGHT MODE TOGGLE
-# -----------------------------
 @login_bp.route("/toggle-mode", methods=["POST"])
 def toggle_mode():
     user = session.get("user")
