@@ -2,6 +2,8 @@ from flask import Blueprint, redirect, request, session, url_for, jsonify, rende
 import requests
 import os
 
+from github_app import get_installation_token_for_user
+
 login_bp = Blueprint("login", __name__)
 
 GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]
@@ -11,22 +13,29 @@ METADATA_NAMESPACE = "LaeGOS"
 GITHUB_API = "https://api.github.com"
 
 
-def _get_token():
+def _get_oauth_token():
     return session.get("github_token")
+
+
+def _get_app_installation_token():
+    oauth_token = _get_oauth_token()
+    if not oauth_token:
+        return None
+    return get_installation_token_for_user(oauth_token)
 
 
 def _load_registry_from_github():
     """
-    Load registry dict from GitHub user metadata under our namespace.
-    Returns {} if nothing stored or on error.
+    Load registry dict from GitHub user metadata under our namespace,
+    using the GitHub App installation token.
     """
-    token = _get_token()
-    if not token:
+    app_token = _get_app_installation_token()
+    if not app_token:
         return {}
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
+        "Authorization": f"Bearer {app_token}",
+        "Accept": "application/vnd.github+json",
     }
     resp = requests.get(f"{GITHUB_API}/user/metadata", headers=headers)
     if resp.status_code != 200:
@@ -34,27 +43,6 @@ def _load_registry_from_github():
 
     data = resp.json() or {}
     return data.get(METADATA_NAMESPACE, {}) or {}
-
-
-def _sync_registry_to_github(registry):
-    """
-    Persist registry dict into GitHub user metadata.
-    Used by driver, but kept here for completeness if needed.
-    """
-    token = _get_token()
-    if not token:
-        return
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-    }
-    payload = {METADATA_NAMESPACE: registry}
-
-    try:
-        requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
-    except Exception:
-        pass
 
 
 # -----------------------------
@@ -87,7 +75,7 @@ def github_callback():
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
         data={
-            "client_id": GITHUB_CLIENT_ID,
+            "client_id": GITHUB_CLIENT_ID",
             "client_secret": GITHUB_CLIENT_SECRET,
             "code": code,
             "redirect_uri": callback_url,
@@ -102,8 +90,10 @@ def github_callback():
     if not access_token:
         return "No access token", 500
 
+    # Store OAuth token (for user identity + to derive installation token)
     session["github_token"] = access_token
-    headers = {"Authorization": f"Bearer {access_token}"}
+    headers = {"Authorization": f"Bearer {access_token}",
+               "Accept": "application/vnd.github+json"}
 
     # Basic user info
     user = requests.get(f"{GITHUB_API}/user", headers=headers).json()
@@ -119,7 +109,7 @@ def github_callback():
         "registry": {},
     }
 
-    # Load registry from GitHub metadata
+    # Load registry from GitHub metadata via App
     registry = _load_registry_from_github()
 
     # If metadata is truly empty, fall back to per-computer defaults (if any)
@@ -166,7 +156,19 @@ def toggle_mode():
         new_mode = "Day" if mode == "Night" else "Night"
         user["registry"]["SYSTEM.DAYNIGHTMODE"] = new_mode
         session["user"] = user
-        _sync_registry_to_github(user["registry"])
+
+        # Persist via App metadata
+        app_token = _get_app_installation_token()
+        if app_token:
+            headers = {
+                "Authorization": f"Bearer {app_token}",
+                "Accept": "application/vnd.github+json",
+            }
+            payload = {METADATA_NAMESPACE: user["registry"]}
+            try:
+                requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
+            except Exception:
+                pass
     else:
         reg = session.get("anon_registry", {})
         mode = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
