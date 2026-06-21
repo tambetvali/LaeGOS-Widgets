@@ -50,6 +50,7 @@ def inject_user():
 
 @app.route("/")
 def home():
+    print("ANON REGISTRY:", session.get("anon_registry"))
     return render_template("index.html")
 
 
