@@ -17,3 +17,5 @@
 [user]
 	name = tambetvali
 	email = tambetvali@proton.me
+[credential]
+	helper = store
