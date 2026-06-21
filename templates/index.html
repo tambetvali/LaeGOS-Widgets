@@ -73,7 +73,6 @@
         .corner-links a:hover { color: #fff; }
         body.day .corner-links a:hover { color: #000; }
 
-        /* WinBox theming */
         .wb-window,
         .wb-title,
         .wb-body {
@@ -86,12 +85,12 @@
     </style>
 </head>
 
-<!-- IMPORTANT: no forced night/day class -->
-<body data-logged-in="{{ '1' if current_user else '0' }}">
+<!-- Server-side theme injection: NO flicker -->
+<body class="{{ 'day' if current_mode == 'Day' else 'night' }}"
+      data-logged-in="{{ '1' if current_user else '0' }}">
 
 <div id="root">
 
-    <!-- Boot window content -->
     <div id="boot" class="wincontent">
         <h1>📟 LaeGOS</h1>
         <div class="subtitle">Laegna Handheld Calculator OS</div>
@@ -100,7 +99,6 @@
         <a href="/about" class="btn">About</a>
     </div>
 
-    <!-- User window content -->
     <div id="userwin" class="wincontent" style="display:none;">
         {% if current_user %}
             <strong>{{ current_user.email }}</strong><br>
@@ -120,7 +118,6 @@
         {% endif %}
     </div>
 
-    <!-- Corner links -->
     <div class="corner-links">
         📓 <a href="https://github.com/tambetvali/LaeGOS" target="_blank">LaeGOS Docs</a><br>
         💾 <a href="https://github.com/tambetvali/LaeGOS-Widgets" target="_blank">Widgets Repo</a><br>
@@ -132,19 +129,6 @@
 <script src="{{ url_for('static', filename='js/winbox.bundle.min.js') }}"></script>
 
 <script>
-/* --- Apply theme from registry --- */
-function applyTheme(mode) {
-    document.body.classList.toggle("day", mode === "Day");
-    document.body.classList.toggle("night", mode === "Night");
-}
-
-fetch("/api/registry")
-  .then(r => r.json())
-  .then(reg => {
-      const mode = reg["SYSTEM.DAYNIGHTMODE"] || "Night";
-      applyTheme(mode);
-  });
-
 window.addEventListener("load", () => {
 
     const vw = window.innerWidth;
@@ -154,27 +138,24 @@ window.addEventListener("load", () => {
     const bootContent = document.getElementById("boot");
     const userContent = document.getElementById("userwin");
 
-    /* --- Boot window size --- */
-    const bootWidth  = Math.min(480, vw - 40);
-    const bootHeight = Math.min(bootContent.scrollHeight + 40, vh - 60);
-
-    /* --- User window size (dynamic, based on content) --- */
-    userContent.style.display = "block";  // allow measuring
+    userContent.style.display = "block";
     const userContentHeight = userContent.scrollHeight + 40;
     const userWidth = Math.min(520, vw * 0.5);
     const userHeight = Math.min(userContentHeight, vh - 60);
 
-    /* --- Window positions --- */
     let bootX, bootY, userX, userY;
 
     if (loggedIn) {
         userX = Math.max(20, vw * 0.06);
         userY = Math.max(20, vh * 0.18);
 
-        bootX = Math.min(vw - bootWidth - 20, userX + userWidth + 20);
+        bootX = Math.min(vw - userWidth - 20, userX + userWidth + 20);
         bootY = Math.max(20, vh * 0.10);
 
     } else {
+        const bootWidth  = Math.min(480, vw - 40);
+        const bootHeight = Math.min(bootContent.scrollHeight + 40, vh - 60);
+
         bootX = (vw - bootWidth) / 2;
         bootY = Math.max(20, vh * 0.08);
 
@@ -182,7 +163,6 @@ window.addEventListener("load", () => {
         userY = Math.min(vh - userHeight - 20, bootY + bootHeight + 20);
     }
 
-    /* --- Create Boot window --- */
     new WinBox({
         title: "📟 LaeGOS Boot",
         class: ["no-full", "no-max"],
@@ -190,12 +170,11 @@ window.addEventListener("load", () => {
         border: 1,
         x: bootX,
         y: bootY,
-        width: bootWidth,
-        height: bootHeight,
+        width: Math.min(480, vw - 40),
+        height: Math.min(bootContent.scrollHeight + 40, vh - 60),
         mount: bootContent
     });
 
-    /* --- Create User window --- */
     new WinBox({
         title: "👤 User",
         class: ["no-full", "no-max"],
@@ -208,18 +187,19 @@ window.addEventListener("load", () => {
         mount: userContent
     });
 
-    /* --- Start Up button --- */
     document.getElementById("startup").onclick = () => {
         window.location.href = "/os/";
     };
 
-    /* --- Day/Night toggle --- */
     const toggle = document.getElementById("toggle-mode");
     if (toggle) {
         toggle.onclick = () => {
             fetch("/auth/toggle-mode", {method: "POST"})
                 .then(r => r.json())
-                .then(data => applyTheme(data.mode));
+                .then(data => {
+                    document.body.classList.toggle("day", data.mode === "Day");
+                    document.body.classList.toggle("night", data.mode === "Night");
+                });
         };
     }
 });
