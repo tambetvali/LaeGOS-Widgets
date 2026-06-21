@@ -14,10 +14,6 @@ def _auth_headers(oauth_token):
 
 
 def find_registry_gist(oauth_token):
-    """
-    Find the user's LaeGOS Registry Gist.
-    Returns (gist_id, content_dict) or (None, None) if not found.
-    """
     headers = _auth_headers(oauth_token)
     resp = requests.get(f"{GITHUB_API}/gists", headers=headers)
 
@@ -44,10 +40,6 @@ def find_registry_gist(oauth_token):
 
 
 def create_registry_gist(oauth_token, initial_registry):
-    """
-    Create a new LaeGOS Registry Gist with initial_registry.
-    Returns (gist_id, initial_registry).
-    """
     headers = _auth_headers(oauth_token)
     payload = {
         "description": GIST_DESCRIPTION,
@@ -68,11 +60,6 @@ def create_registry_gist(oauth_token, initial_registry):
 
 
 def load_registry(oauth_token):
-    """
-    Load registry from user's Gist.
-    If not found, create a new one with default registry.
-    Returns (gist_id, registry_dict).
-    """
     default_registry = {"SYSTEM.DAYNIGHTMODE": "Night"}
 
     gist_id, registry = find_registry_gist(oauth_token)
@@ -86,9 +73,6 @@ def load_registry(oauth_token):
 
 
 def save_registry(oauth_token, gist_id, registry):
-    """
-    Save registry to existing Gist.
-    """
     headers = _auth_headers(oauth_token)
     payload = {
         "files": {
