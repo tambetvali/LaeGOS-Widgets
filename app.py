@@ -1,13 +1,10 @@
 from flask import Flask, render_template
 from login.login import login_bp
-from login.driver import get_current_user
+from login.driver import get_current_user, get_registry_value
 
 import os, secrets
 
-app = Flask(
-    __name__,
-    template_folder="templates",
-)
+app = Flask(__name__, template_folder="templates")
 
 # Dev settings
 app.config["DEBUG"] = True
@@ -23,14 +20,21 @@ app.register_blueprint(login_bp, url_prefix="/auth")
 # Add drafts folder
 app.jinja_loader.searchpath.append("drafts")
 
-# Inject current_user into templates
+
 @app.context_processor
 def inject_user():
-    return {"current_user": get_current_user()}
+    user = get_current_user()
+    mode = get_registry_value("SYSTEM.DAYNIGHTMODE") or "Night"
+    return {
+        "current_user": user,
+        "current_mode": mode,
+    }
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/drafts/<path:filename>")
 def drafts(filename):
