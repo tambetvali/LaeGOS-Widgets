@@ -1,9 +1,5 @@
 from flask import session
-from github_app import (
-    get_installation_id,
-    get_installation_token,
-    save_registry
-)
+from github_gist import save_registry
 
 
 def is_logged_in():
@@ -25,9 +21,9 @@ def set_registry_value(key, value):
     session["registry"] = reg
 
     if "user" in session:
-        username = session["user"]
-        installation_id = get_installation_id(username)
-        installation_token = get_installation_token(installation_id)
-        save_registry(installation_token, username, reg)
+        access_token = session.get("github_token")
+        gist_id = session.get("gist_id")
+        if access_token and gist_id:
+            save_registry(access_token, gist_id, reg)
 
     return True
