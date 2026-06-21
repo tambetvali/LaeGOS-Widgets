@@ -9,11 +9,13 @@
             --bg: #111;
             --win: #222;
             --text: #eee;
+            --title: #333;
         }
         body.day {
             --bg: #f4f4f4;
             --win: #ffffff;
             --text: #111;
+            --title: #ddd;
         }
 
         html, body {
@@ -49,9 +51,22 @@
             color: #111;
         }
         .btn:hover { filter: brightness(1.1); }
+
+        .wb-window {
+            background: var(--win) !important;
+            color: var(--text) !important;
+        }
+        .wb-title {
+            background: var(--title) !important;
+            color: var(--text) !important;
+        }
+        .wb-body {
+            background: var(--win) !important;
+            color: var(--text) !important;
+        }
     </style>
 </head>
-<body class="{{ 'day' if user.registry.SYSTEM_DAYNIGHTMODE == 'Day' if user and user.get('registry') else '' }}">
+<body class="{{ 'day' if current_mode == 'Day' else 'night' }}">
 <div id="profile" class="wincontent">
     <h2>👤 LaeGOS User Profile</h2>
 
