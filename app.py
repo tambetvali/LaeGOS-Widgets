@@ -41,9 +41,9 @@ def inject_user():
         user = None
 
     return {
-        "user": user,                # <-- templates expect this
-        "current_user": user,        # backward compatibility
-        "github_user": github_user,  # raw GitHub JSON
+        "user": user,
+        "current_user": user,
+        "github_user": github_user,
         "current_mode": mode,
     }
 
