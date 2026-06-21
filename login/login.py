@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, request, session, url_for, jsonify
+from flask import Blueprint, redirect, request, session, url_for, jsonify, render_template
 import requests
 import os
 
@@ -13,7 +13,6 @@ GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
 # ---------------------------------------------------------
 @login_bp.route("/login")
 def login():
-    # Generate absolute callback URL
     callback_url = url_for("login.github_callback", _external=True)
     print("DEBUG: Using callback_url =", callback_url)
 
@@ -54,14 +53,12 @@ def github_callback():
     token_response = requests.post(token_url, headers=headers, data=data)
     print("DEBUG: Raw token response =", token_response.text)
 
-    # Safe JSON parsing
     try:
         token_json = token_response.json()
     except Exception as e:
         print("ERROR: Failed to parse JSON:", e)
         return "GitHub returned non‑JSON response", 500
 
-    # GitHub error (e.g., bad_verification_code)
     if "error" in token_json:
         print("ERROR: GitHub OAuth error:", token_json)
         return jsonify(token_json), 400
@@ -74,20 +71,8 @@ def github_callback():
     print("DEBUG: Received access_token =", access_token[:6] + "…")
     session["github_token"] = access_token
 
-    return redirect(url_for("login.profile"))
-
-
-# ---------------------------------------------------------
-# 3. PROFILE → Fetch GitHub user info
-# ---------------------------------------------------------
-@login_bp.route("/profile")
-def profile():
-    token = session.get("github_token")
-    if not token:
-        print("DEBUG: No token in session → redirecting to login")
-        return redirect(url_for("login.login"))
-
-    headers = {"Authorization": f"Bearer {token}"}
+    # Fetch user info once and store in session
+    headers = {"Authorization": f"Bearer {access_token}"}
 
     print("DEBUG: Fetching GitHub user info…")
     user = requests.get("https://api.github.com/user", headers=headers).json()
@@ -98,8 +83,36 @@ def profile():
     print("DEBUG: User =", user)
     print("DEBUG: Emails =", emails)
 
-    return jsonify({
+    session["user"] = {
+        "email": primary_email,
+        "name": user.get("name"),
+        "picture": user.get("avatar_url"),
         "username": user.get("login"),
         "id": user.get("id"),
-        "email": primary_email,
-    })
+    }
+
+    return redirect(url_for("login.profile"))
+
+
+# ---------------------------------------------------------
+# 3. PROFILE → Render profile page
+# ---------------------------------------------------------
+@login_bp.route("/profile")
+def profile():
+    user = session.get("user")
+    if not user:
+        print("DEBUG: No user in session → redirecting to login")
+        return redirect(url_for("login.login"))
+
+    return render_template("profile.html", user=user)
+
+
+# ---------------------------------------------------------
+# 4. LOGOUT → Clear session and go back to home
+# ---------------------------------------------------------
+@login_bp.route("/logout")
+def logout():
+    session.pop("github_token", None)
+    session.pop("user", None)
+    print("DEBUG: Logged out, session cleared")
+    return redirect(url_for("home"))
