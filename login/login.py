@@ -27,6 +27,18 @@ def _load_registry_from_github():
     return data.get(METADATA_NAMESPACE, {}) or {}
 
 
+def _sync_registry_to_github(registry):
+    token = _get_token()
+    if not token:
+        return
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    payload = {METADATA_NAMESPACE: registry}
+    try:
+        requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
+    except Exception:
+        pass
+
+
 # -----------------------------
 # LOGIN
 # -----------------------------
@@ -106,7 +118,8 @@ def profile():
     user = session.get("user")
     if not user:
         return redirect(url_for("login.login"))
-    return render_template("profile.html", user=user)
+    mode = user.get("registry", {}).get("SYSTEM.DAYNIGHTMODE", "Night")
+    return render_template("profile.html", user=user, current_mode=mode)
 
 
 # -----------------------------
@@ -114,9 +127,9 @@ def profile():
 # -----------------------------
 @login_bp.route("/logout")
 def logout():
+    # Keep anon_registry so per-computer defaults are restored
     session.pop("github_token", None)
     session.pop("user", None)
-    session.pop("anon_registry", None)
     return redirect("/")
 
 
@@ -128,10 +141,11 @@ def toggle_mode():
     user = session.get("user")
     if user and "registry" in user:
         mode = user["registry"].get("SYSTEM.DAYNIGHTMODE", "Night")
-        user["registry"]["SYSTEM.DAYNIGHTMODE"] = "Day" if mode == "Night" else "Night"
+        new_mode = "Day" if mode == "Night" else "Night"
+        user["registry"]["SYSTEM.DAYNIGHTMODE"] = new_mode
         session["user"] = user
+        _sync_registry_to_github(user["registry"])
     else:
-        # Anonymous registry in session
         reg = session.get("anon_registry", {})
         mode = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
         reg["SYSTEM.DAYNIGHTMODE"] = "Day" if mode == "Night" else "Night"
