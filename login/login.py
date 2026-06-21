@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, request, session
+from flask import Blueprint, redirect, request, session, render_template
 import requests
 import os
 from github_gist import load_registry, save_registry
@@ -12,7 +12,8 @@ GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
 @login_bp.route("/login")
 def login():
     return redirect(
-        f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=read:user,gist"
+        f"https://github.com/login/oauth/authorize"
+        f"?client_id={GITHUB_CLIENT_ID}&scope=read:user,gist"
     )
 
 
@@ -38,13 +39,18 @@ def callback():
         "https://api.github.com/user",
         headers={"Authorization": f"Bearer {access_token}"},
     )
-    username = user_res.json().get("login")
+    github_user = user_res.json()
+    username = github_user.get("login")
+
     if not username:
         return "GitHub user fetch failed", 400
 
+    # store user + token + full profile
     session["user"] = username
     session["github_token"] = access_token
+    session["github_user"] = github_user
 
+    # load or create registry Gist
     gist_id, registry = load_registry(access_token)
     session["gist_id"] = gist_id
     session["registry"] = registry
@@ -60,19 +66,7 @@ def logout():
     return redirect("/")
 
 
-@login_bp.route("/save_registry", methods=["POST"])
-def save_registry_route():
-    if "user" not in session:
-        session["anon_registry"] = request.json
-        return {"status": "saved-anon"}
-
-    access_token = session.get("github_token")
-    gist_id = session.get("gist_id")
-
-    if not access_token or not gist_id:
-        return {"status": "error", "message": "Missing GitHub token or Gist ID"}, 400
-
-    save_registry(access_token, gist_id, request.json)
-    session["registry"] = request.json
-
-    return {"status": "saved-gist"}
+@login_bp.route("/profile")
+def profile():
+    github_user = session.get("github_user", {})
+    return render_template("profile.html", github_user=github_user)
