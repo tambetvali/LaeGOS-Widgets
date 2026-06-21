@@ -9,10 +9,7 @@ from login.driver import (
 
 import os, secrets
 
-# Create Flask app with templates folder
 app = Flask(__name__, template_folder="templates")
-
-# Secret key
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
 # Dev settings
@@ -21,10 +18,10 @@ app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["TRAP_HTTP_EXCEPTIONS"] = True
 app.config["TRAP_BAD_REQUEST_ERRORS"] = True
 
-# Register login blueprint WITH /auth prefix (your original choice)
+# /auth prefix (as you had after layout fix)
 app.register_blueprint(login_bp, url_prefix="/auth")
 
-# Add drafts folder
+# drafts folder
 app.jinja_loader.searchpath.append("drafts")
 
 
@@ -32,14 +29,12 @@ app.jinja_loader.searchpath.append("drafts")
 def inject_user():
     user = get_current_user()
     mode = get_registry_value("SYSTEM.DAYNIGHTMODE") or "Night"
-
-    # Restore your full user object for profile page
     github_user = session.get("github_user", {})
 
     return {
         "current_user": user,
         "current_mode": mode,
-        "github_user": github_user,   # <-- profile page fix
+        "github_user": github_user,
     }
 
 
