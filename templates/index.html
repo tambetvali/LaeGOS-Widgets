@@ -11,13 +11,11 @@
             --bg: #111;
             --win: #222;
             --text: #eee;
-            --title: #333;
         }
         body.day {
             --bg: #f4f4f4;
             --win: #ffffff;
             --text: #111;
-            --title: #ddd;
         }
 
         html, body {
@@ -73,15 +71,8 @@
         .corner-links a:hover { color: #fff; }
         body.day .corner-links a:hover { color: #000; }
 
-        /* WinBox theming */
-        .wb-window {
-            background: var(--win) !important;
-            color: var(--text) !important;
-        }
-        .wb-title {
-            background: var(--title) !important;
-            color: var(--text) !important;
-        }
+        .wb-window,
+        .wb-title,
         .wb-body {
             background: var(--win) !important;
             color: var(--text) !important;
@@ -135,28 +126,29 @@ window.addEventListener("load", () => {
     const vh = window.innerHeight;
     const loggedIn = document.body.dataset.loggedIn === "1";
 
-    const bootWidth  = Math.min(420, vw - 40);
-    const bootHeight = Math.min(300, vh * 0.35);
+    const bootContent = document.getElementById("boot");
+    const userContent = document.getElementById("userwin");
+
+    const bootWidth  = Math.min(480, vw - 40);
+    const bootHeight = Math.min(bootContent.offsetHeight + 40, vh - 60);
 
     let bootX, bootY, userX, userY, userWidth, userHeight;
 
     if (loggedIn) {
-        // Logged in: boot on right, user large on left
-        userWidth  = Math.min(420, vw * 0.45);
-        userHeight = Math.min(320, vh * 0.6);
+        userWidth  = Math.min(520, vw * 0.5);
+        userHeight = Math.min(userContent.offsetHeight + 40, vh - 80);
 
-        userX = Math.max(20, vw * 0.08);
+        userX = Math.max(20, vw * 0.06);
         userY = Math.max(20, vh * 0.18);
 
         bootX = Math.min(vw - bootWidth - 20, userX + userWidth + 20);
-        bootY = Math.max(20, vh * 0.12);
+        bootY = Math.max(20, vh * 0.10);
     } else {
-        // Logged out: boot centered, user small under it
         userWidth  = bootWidth;
-        userHeight = Math.min(260, vh * 0.35);
+        userHeight = Math.min(userContent.offsetHeight + 40, vh - 80);
 
         bootX = (vw - bootWidth) / 2;
-        bootY = Math.max(20, vh * 0.10);
+        bootY = Math.max(20, vh * 0.08);
 
         userX = bootX;
         userY = Math.min(vh - userHeight - 20, bootY + bootHeight + 20);
@@ -171,10 +163,9 @@ window.addEventListener("load", () => {
         y: bootY,
         width: bootWidth,
         height: bootHeight,
-        mount: document.getElementById("boot")
+        mount: bootContent
     });
 
-    const userContent = document.getElementById("userwin");
     userContent.style.display = "block";
 
     new WinBox({
