@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>LaeGOS — Profile</title>
+
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .profilecontent {
+            padding: 1.4rem 1.8rem;
+            background: #222;
+            height: 100%;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+
+        .user-info {
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 6px;
+            color: #eee;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 0.4rem;
+        }
+
+        .btn:hover {
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="profilecontent" class="profilecontent">
+        <h2>👤 LaeGOS User Profile</h2>
+
+        <div class="user-info">
+            {% if user %}
+                <strong>{{ user.username or user.email }}</strong><br>
+                {{ user.email }}<br>
+                {% if user.name %}
+                    Name: {{ user.name }}<br>
+                {% endif %}
+                {% if user.picture %}
+                    <img src="{{ user.picture }}" alt="User picture"
+                         style="margin-top:0.5rem; width:64px; height:64px; border-radius:50%;">
+                {% endif %}
+            {% else %}
+                <p>No user data available.</p>
+            {% endif %}
+        </div>
+
+        <a href="/" class="btn">⬅ Back to LaeGOS</a>
+        <a href="/auth/logout" class="btn">Log out</a>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/winbox.bundle.min.js') }}"></script>
+
+    <script>
+        window.addEventListener("load", () => {
+            const profile = document.getElementById("profilecontent");
+
+            new WinBox({
+                title: "👤 Profile",
+                class: ["no-full", "no-max"],
+                background: "#222",
+                border: 1,
+                x: "center",
+                y: 120,
+                width: 420,
+                height: 260,
+                mount: profile
+            });
+        });
+    </script>
+
+</body>
+</html>
