@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>LaeGOS — About</title>
+
+    <style>
+        :root {
+            --bg: #111;
+            --win: #222;
+            --text: #eee;
+            --title: #333;
+        }
+        body.day {
+            --bg: #f4f4f4;
+            --win: #ffffff;
+            --text: #111;
+            --title: #ddd;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: auto;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, sans-serif;
+        }
+
+        .wincontent {
+            padding: 1.4rem 1.8rem;
+            background: var(--win);
+            min-height: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: #333;
+            border: 1px solid #666;
+            border-radius: 6px;
+            color: #eee;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 0.4rem;
+        }
+        body.day .btn {
+            background: #ddd;
+            border-color: #aaa;
+            color: #111;
+        }
+        .btn:hover { filter: brightness(1.1); }
+
+        .wb-window {
+            background: var(--win) !important;
+            color: var(--text) !important;
+        }
+        .wb-title {
+            background: var(--title) !important;
+            color: var(--text) !important;
+        }
+        .wb-body {
+            background: var(--win) !important;
+            color: var(--text) !important;
+        }
+    </style>
+</head>
+<body>
+<div id="about" class="wincontent">
+    <h2>ℹ️ About LaeGOS</h2>
+    <p>
+        LaeGOS is the Laegna Calculator Operating System — a micro‑OS for
+        exploring Laegna math and interactive computation.
+    </p>
+    <p>
+        🔗 <a href="https://github.com/tambetvali/LaeGOS" target="_blank">LaeGOS Repository</a>
+    </p>
+    <br>
+    <a href="/" class="btn">⬅ Back</a>
+</div>
+
+<script src="{{ url_for('static', filename='js/winbox.bundle.min.js') }}"></script>
+
+<script>
+window.addEventListener("load", () => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const content = document.getElementById("about");
+    const desiredWidth  = Math.min(460, vw - 40);
+    const desiredHeight = Math.min(Math.max(content.offsetHeight + 40, 260), vh - 40);
+
+    const centerX = (vw - desiredWidth) / 2;
+    const topY    = Math.max(20, (vh - desiredHeight) / 4);
+
+    new WinBox({
+        title: "ℹ️ About LaeGOS",
+        class: ["no-full", "no-max"],
+        background: "var(--win)",
+        border: 1,
+        x: centerX,
+        y: topY,
+        width: desiredWidth,
+        height: desiredHeight,
+        mount: content
+    });
+});
+</script>
+
+</body>
+</html>
