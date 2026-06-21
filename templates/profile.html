@@ -5,19 +5,30 @@
     <title>LaeGOS — Profile</title>
 
     <style>
+        :root {
+            --bg: #111;
+            --win: #222;
+            --text: #eee;
+        }
+        body.day {
+            --bg: #f4f4f4;
+            --win: #ffffff;
+            --text: #111;
+        }
+
         html, body {
             height: 100%;
-            background: #111;
             margin: 0;
             overflow: auto;
-            color: #eee;
+            background: var(--bg);
+            color: var(--text);
             font-family: system-ui, sans-serif;
         }
 
         .wincontent {
             padding: 1.4rem 1.8rem;
-            background: #222;
-            height: 100%;
+            background: var(--win);
+            min-height: 100%;
             box-sizing: border-box;
         }
 
@@ -32,11 +43,15 @@
             text-decoration: none;
             margin-right: 0.4rem;
         }
-        .btn:hover { background: #444; }
+        body.day .btn {
+            background: #ddd;
+            border-color: #aaa;
+            color: #111;
+        }
+        .btn:hover { filter: brightness(1.1); }
     </style>
 </head>
-<body>
-
+<body class="{{ 'day' if user.registry.SYSTEM_DAYNIGHTMODE == 'Day' if user and user.get('registry') else '' }}">
 <div id="profile" class="wincontent">
     <h2>👤 LaeGOS User Profile</h2>
 
@@ -45,8 +60,11 @@
         {{ user.email }}<br>
         {% if user.name %}Name: {{ user.name }}<br>{% endif %}
         {% if user.picture %}
-            <img src="{{ user.picture }}" width="64" height="64" style="border-radius:50%; margin-top:0.5rem;">
+            <img src="{{ user.picture }}" width="64" height="64"
+                 style="border-radius:50%; margin-top:0.5rem;">
         {% endif %}
+    {% else %}
+        <p>No user data.</p>
     {% endif %}
 
     <br><br>
@@ -58,19 +76,26 @@
 
 <script>
 window.addEventListener("load", () => {
-    const centerX = window.innerWidth / 2 - 210;
-    const topY    = window.innerHeight * 0.18;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const content = document.getElementById("profile");
+    const desiredWidth  = Math.min(440, vw - 40);
+    const desiredHeight = Math.min(Math.max(content.offsetHeight + 40, 260), vh - 40);
+
+    const centerX = (vw - desiredWidth) / 2;
+    const topY    = Math.max(20, (vh - desiredHeight) / 4);
 
     new WinBox({
         title: "👤 Profile",
         class: ["no-full", "no-max"],
-        background: "#222",
+        background: "var(--win)",
         border: 1,
         x: centerX,
         y: topY,
-        width: 420,
-        height: 320,
-        mount: document.getElementById("profile")
+        width: desiredWidth,
+        height: desiredHeight,
+        mount: content
     });
 });
 </script>
