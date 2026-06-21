@@ -59,8 +59,9 @@ def callback():
     if not username:
         return "GitHub user fetch failed", 400
 
-    # Store user in session
+    # Store user and OAuth token in session
     session["user"] = username
+    session["github_token"] = access_token
 
     # Get installation ID
     installation_id = get_installation_id_for_user(username)
