@@ -92,7 +92,10 @@ def profile():
 
 @login_bp.route("/toggle-mode", methods=["POST"])
 def toggle_mode():
-    reg = session.get("registry") or session.get("anon_registry") or {}
+    if "user" in session:
+        reg = session.get("registry", {})
+    else:
+        reg = session.get("anon_registry", {})
 
     current = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
     new_mode = "Day" if current == "Night" else "Night"
