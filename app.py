@@ -6,6 +6,12 @@ app = Flask(
     template_folder="templates",
 )
 
+# This is rather dev than prod system.
+app.config["DEBUG"] = True
+app.config["PROPAGATE_EXCEPTIONS"] = True
+app.config["TRAP_HTTP_EXCEPTIONS"] = True
+app.config["TRAP_BAD_REQUEST_ERRORS"] = True
+
 # Register the login blueprint
 app.register_blueprint(login_bp, url_prefix="/auth")
 
