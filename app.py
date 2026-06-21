@@ -66,6 +66,11 @@ def about():
     return render_template("about.html")
 
 
+@app.route("/os/")
+def os_root():
+    return render_template("laegos/laegos.html")
+
+
 @app.route("/drafts/<path:filename>")
 def drafts(filename):
     return render_template(filename)
