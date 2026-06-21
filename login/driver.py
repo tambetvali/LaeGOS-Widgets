@@ -7,28 +7,27 @@ GITHUB_API = "https://api.github.com"
 METADATA_NAMESPACE = "LaeGOS"
 
 
-def _get_oauth_token():
-    return session.get("github_token")
+# ---------------------------
+#  INTERNAL HELPERS
+# ---------------------------
 
-
-def _get_app_installation_token():
-    oauth_token = _get_oauth_token()
-    if not oauth_token:
+def _get_installation_token():
+    username = session.get("user")
+    if not username:
         return None
-    return get_installation_token_for_user(oauth_token)
+    return get_installation_token_for_user(username)
 
 
 def _sync_registry_to_github(registry):
     """
-    Persist the registry dict into GitHub user metadata under our namespace,
-    using the GitHub App installation token (user-to-server).
+    Persist the registry dict into GitHub user metadata under our namespace.
     """
-    app_token = _get_app_installation_token()
-    if not app_token:
+    token = _get_installation_token()
+    if not token:
         return
 
     headers = {
-        "Authorization": f"Bearer {app_token}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
     payload = {METADATA_NAMESPACE: registry}
@@ -36,27 +35,30 @@ def _sync_registry_to_github(registry):
     try:
         requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
     except Exception:
-        # Do not break UX if GitHub metadata write fails
-        pass
+        pass  # Never break UX
 
 
 def _get_registry_container():
     """
     Returns (registry_dict, logged_in_bool).
 
-    - If user is logged in, use session["user"]["registry"].
-    - If not, use session["anon_registry"] as per-computer defaults.
+    - If logged in: use session["registry"]
+    - If logged out: use session["anon_registry"]
     """
-    user = session.get("user")
-    if user:
-        user.setdefault("registry", {})
-        return user["registry"], True
+    if "user" in session:
+        reg = session.get("registry", {})
+        session["registry"] = reg
+        return reg, True
 
-    # Anonymous registry (per-computer defaults)
+    # Anonymous registry
     reg = session.get("anon_registry", {})
     session["anon_registry"] = reg
     return reg, False
 
+
+# ---------------------------
+#  PUBLIC API
+# ---------------------------
 
 def is_logged_in():
     return "user" in session
@@ -76,15 +78,12 @@ def set_registry_value(key, value):
     registry[key] = value
 
     if logged_in:
-        # Update session user registry
-        user = session.get("user")
-        user["registry"] = registry
-        session["user"] = user
-
-        # Persist to GitHub metadata via App
+        # Save to session
+        session["registry"] = registry
+        # Persist to GitHub metadata
         _sync_registry_to_github(registry)
     else:
-        # Anonymous per-computer registry
+        # Anonymous registry
         session["anon_registry"] = registry
 
     return True
