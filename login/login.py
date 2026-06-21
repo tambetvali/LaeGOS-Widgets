@@ -1,178 +1,126 @@
-from flask import Blueprint, redirect, request, session, url_for, jsonify, render_template
+from flask import Blueprint, redirect, request, session, url_for
 import requests
-import os
+import json
+from github_app import (
+    get_jwt,
+    get_installation_id_for_user,
+    get_installation_token_for_user,
+    get_user_metadata,
+    update_user_metadata
+)
 
-from github_app import get_installation_token_for_user
+login_bp = Blueprint("login_bp", __name__)
 
-login_bp = Blueprint("login", __name__)
-
-GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]
-GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
-
-METADATA_NAMESPACE = "LaeGOS"
-GITHUB_API = "https://api.github.com"
-
-
-def _get_oauth_token():
-    return session.get("github_token")
-
-
-def _get_app_installation_token():
-    oauth_token = _get_oauth_token()
-    if not oauth_token:
-        return None
-    return get_installation_token_for_user(oauth_token)
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
+GITHUB_APP_ID = os.environ.get("GITHUB_APP_ID")
 
 
-def _load_registry_from_github():
-    """
-    Load registry dict from GitHub user metadata under our namespace,
-    using the GitHub App installation token.
-    """
-    app_token = _get_app_installation_token()
-    if not app_token:
-        return {}
-
-    headers = {
-        "Authorization": f"Bearer {app_token}",
-        "Accept": "application/vnd.github+json",
-    }
-    resp = requests.get(f"{GITHUB_API}/user/metadata", headers=headers)
-    if resp.status_code != 200:
-        return {}
-
-    data = resp.json() or {}
-    return data.get(METADATA_NAMESPACE, {}) or {}
-
-
-# -----------------------------
-# LOGIN
-# -----------------------------
+# ---------------------------
+#  LOGIN START
+# ---------------------------
 @login_bp.route("/login")
 def login():
-    callback_url = url_for("login.github_callback", _external=True)
-    github_auth_url = (
-        "https://github.com/login/oauth/authorize"
-        f"?client_id={GITHUB_CLIENT_ID}"
-        "&scope=read:user user:email"
-        f"&redirect_uri={callback_url}"
+    return redirect(
+        f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=read:user"
     )
-    return redirect(github_auth_url)
 
 
-# -----------------------------
-# CALLBACK
-# -----------------------------
+# ---------------------------
+#  GITHUB CALLBACK
+# ---------------------------
 @login_bp.route("/callback")
-def github_callback():
+def callback():
     code = request.args.get("code")
-    if not code:
-        return "Missing ?code=", 400
 
-    callback_url = url_for("login.github_callback", _external=True)
-
-    token_resp = requests.post(
+    # Exchange code for OAuth token
+    token_res = requests.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
         data={
             "client_id": GITHUB_CLIENT_ID,
             "client_secret": GITHUB_CLIENT_SECRET,
             "code": code,
-            "redirect_uri": callback_url,
         },
     )
 
-    token_json = token_resp.json()
-    if "error" in token_json:
-        return jsonify(token_json), 400
-
+    token_json = token_res.json()
     access_token = token_json.get("access_token")
+
     if not access_token:
-        return "No access token", 500
+        return "GitHub OAuth failed", 400
 
-    # Store OAuth token (for user identity + to derive installation token)
-    session["github_token"] = access_token
-    headers = {"Authorization": f"Bearer {access_token}",
-               "Accept": "application/vnd.github+json"}
+    # Get user info
+    user_res = requests.get(
+        "https://api.github.com/user",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    user = user_res.json()
+    username = user.get("login")
 
-    # Basic user info
-    user = requests.get(f"{GITHUB_API}/user", headers=headers).json()
-    emails = requests.get(f"{GITHUB_API}/user/emails", headers=headers).json()
-    primary_email = next((e["email"] for e in emails if e.get("primary")), None)
+    if not username:
+        return "GitHub user fetch failed", 400
 
-    session["user"] = {
-        "email": primary_email,
-        "name": user.get("name"),
-        "picture": user.get("avatar_url"),
-        "username": user.get("login"),
-        "id": user.get("id"),
-        "registry": {},
-    }
+    # Store user in session
+    session["user"] = username
 
-    # Load registry from GitHub metadata via App
-    registry = _load_registry_from_github()
+    # Get installation ID
+    installation_id = get_installation_id_for_user(username)
+    if not installation_id:
+        return "GitHub App is not installed for this user", 400
 
-    # If metadata is truly empty, fall back to per-computer defaults (if any)
-    if registry == {}:
-        registry = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
+    # Get installation token
+    installation_token = get_installation_token_for_user(installation_id)
+    if not installation_token:
+        return "Failed to get installation token", 400
 
-    session["user"]["registry"] = registry
+    # Load metadata
+    metadata = get_user_metadata(installation_token, username)
 
-    return redirect(url_for("login.profile"))
+    # If metadata empty, fallback to anon registry
+    if not metadata:
+        metadata = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
 
+    # Save registry into session
+    session["registry"] = metadata
 
-# -----------------------------
-# PROFILE PAGE
-# -----------------------------
-@login_bp.route("/profile")
-def profile():
-    user = session.get("user")
-    if not user:
-        return redirect(url_for("login.login"))
-
-    mode = user.get("registry", {}).get("SYSTEM.DAYNIGHTMODE", "Night")
-    return render_template("profile.html", user=user, current_mode=mode)
-
-
-# -----------------------------
-# LOGOUT
-# -----------------------------
-@login_bp.route("/logout")
-def logout():
-    # Keep anon_registry so per-computer defaults are restored
-    session.pop("github_token", None)
-    session.pop("user", None)
     return redirect("/")
 
 
-# -----------------------------
-# DAY/NIGHT MODE TOGGLE
-# -----------------------------
-@login_bp.route("/toggle-mode", methods=["POST"])
-def toggle_mode():
-    user = session.get("user")
-    if user and "registry" in user:
-        mode = user["registry"].get("SYSTEM.DAYNIGHTMODE", "Night")
-        new_mode = "Day" if mode == "Night" else "Night"
-        user["registry"]["SYSTEM.DAYNIGHTMODE"] = new_mode
-        session["user"] = user
+# ---------------------------
+#  LOGOUT (FIXED)
+# ---------------------------
+@login_bp.route("/logout")
+def logout():
+    # Preserve anonymous registry
+    anon = session.get("anon_registry", {})
 
-        # Persist via App metadata
-        app_token = _get_app_installation_token()
-        if app_token:
-            headers = {
-                "Authorization": f"Bearer {app_token}",
-                "Accept": "application/vnd.github+json",
-            }
-            payload = {METADATA_NAMESPACE: user["registry"]}
-            try:
-                requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
-            except Exception:
-                pass
-    else:
-        reg = session.get("anon_registry", {})
-        mode = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
-        reg["SYSTEM.DAYNIGHTMODE"] = "Day" if mode == "Night" else "Night"
-        session["anon_registry"] = reg
+    # Clear everything
+    session.clear()
 
-    return "OK"
+    # Restore anonymous registry
+    session["anon_registry"] = anon
+
+    return redirect("/")
+
+
+# ---------------------------
+#  SAVE REGISTRY TO GITHUB
+# ---------------------------
+@login_bp.route("/save_registry", methods=["POST"])
+def save_registry():
+    if "user" not in session:
+        # Save to anon registry
+        session["anon_registry"] = request.json
+        return {"status": "saved-anon"}
+
+    username = session["user"]
+
+    installation_id = get_installation_id_for_user(username)
+    installation_token = get_installation_token_for_user(installation_id)
+
+    update_user_metadata(installation_token, username, request.json)
+
+    session["registry"] = request.json
+
+    return {"status": "saved-github"}
