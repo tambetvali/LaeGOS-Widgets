@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, request, session, render_template
 import requests
 import os
-from github_gist import load_registry
+from github_gist import load_registry, save_registry
 
 login_bp = Blueprint("login_bp", __name__)
 
@@ -73,29 +73,6 @@ def logout():
     return redirect("/")
 
 
-@login_bp.route("/toggle-mode", methods=["POST"])
-def toggle_mode():
-    # Get current registry
-    reg = session.get("registry") or session.get("anon_registry") or {}
-
-    current = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
-    new_mode = "Day" if current == "Night" else "Night"
-
-    # Update registry
-    reg["SYSTEM.DAYNIGHTMODE"] = new_mode
-
-    # Save to session
-    if "user" in session:
-        session["registry"] = reg
-        # Save to Gist
-        from github_gist import save_registry
-        save_registry(session["github_token"], session["gist_id"], reg)
-    else:
-        session["anon_registry"] = reg
-
-    return {"status": "ok", "mode": new_mode}
-
-
 @login_bp.route("/profile")
 def profile():
     github_user = session.get("github_user")
@@ -111,3 +88,22 @@ def profile():
         user = None
 
     return render_template("profile.html", user=user)
+
+
+@login_bp.route("/toggle-mode", methods=["POST"])
+def toggle_mode():
+    reg = session.get("registry") or session.get("anon_registry") or {}
+
+    current = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
+    new_mode = "Day" if current == "Night" else "Night"
+
+    reg["SYSTEM.DAYNIGHTMODE"] = new_mode
+
+    # Write back to session
+    if "user" in session:
+        session["registry"] = reg
+        save_registry(session["github_token"], session["gist_id"], reg)
+    else:
+        session["anon_registry"] = reg
+
+    return {"status": "ok", "mode": new_mode}
