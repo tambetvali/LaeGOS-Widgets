@@ -16,29 +16,50 @@ def _get_token():
 
 
 def _load_registry_from_github():
+    """
+    Load registry dict from GitHub user metadata under our namespace.
+    Returns {} if nothing stored or on error.
+    """
     token = _get_token()
     if not token:
         return {}
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
     resp = requests.get(f"{GITHUB_API}/user/metadata", headers=headers)
     if resp.status_code != 200:
         return {}
+
     data = resp.json() or {}
     return data.get(METADATA_NAMESPACE, {}) or {}
 
 
 def _sync_registry_to_github(registry):
+    """
+    Persist registry dict into GitHub user metadata.
+    Used by driver, but kept here for completeness if needed.
+    """
     token = _get_token()
     if not token:
         return
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
     payload = {METADATA_NAMESPACE: registry}
+
     try:
         requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
     except Exception:
         pass
 
 
+# -----------------------------
+# LOGIN
+# -----------------------------
 @login_bp.route("/login")
 def login():
     callback_url = url_for("login.github_callback", _external=True)
@@ -51,6 +72,9 @@ def login():
     return redirect(github_auth_url)
 
 
+# -----------------------------
+# CALLBACK
+# -----------------------------
 @login_bp.route("/callback")
 def github_callback():
     code = request.args.get("code")
@@ -81,6 +105,7 @@ def github_callback():
     session["github_token"] = access_token
     headers = {"Authorization": f"Bearer {access_token}"}
 
+    # Basic user info
     user = requests.get(f"{GITHUB_API}/user", headers=headers).json()
     emails = requests.get(f"{GITHUB_API}/user/emails", headers=headers).json()
     primary_email = next((e["email"] for e in emails if e.get("primary")), None)
@@ -94,31 +119,45 @@ def github_callback():
         "registry": {},
     }
 
+    # Load registry from GitHub metadata
     registry = _load_registry_from_github()
-    if not registry:
-        # fallback to per-computer defaults if present
+
+    # If metadata is truly empty, fall back to per-computer defaults (if any)
+    if registry == {}:
         registry = session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"})
+
     session["user"]["registry"] = registry
 
     return redirect(url_for("login.profile"))
 
 
+# -----------------------------
+# PROFILE PAGE
+# -----------------------------
 @login_bp.route("/profile")
 def profile():
     user = session.get("user")
     if not user:
         return redirect(url_for("login.login"))
+
     mode = user.get("registry", {}).get("SYSTEM.DAYNIGHTMODE", "Night")
     return render_template("profile.html", user=user, current_mode=mode)
 
 
+# -----------------------------
+# LOGOUT
+# -----------------------------
 @login_bp.route("/logout")
 def logout():
+    # Keep anon_registry so per-computer defaults are restored
     session.pop("github_token", None)
     session.pop("user", None)
     return redirect("/")
 
 
+# -----------------------------
+# DAY/NIGHT MODE TOGGLE
+# -----------------------------
 @login_bp.route("/toggle-mode", methods=["POST"])
 def toggle_mode():
     user = session.get("user")
