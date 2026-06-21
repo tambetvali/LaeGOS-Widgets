@@ -1,4 +1,5 @@
 import requests
+import json
 
 GITHUB_API = "https://api.github.com"
 GIST_FILENAME = "LaeGOS Registry.json"
@@ -13,10 +14,6 @@ def _auth_headers(oauth_token):
 
 
 def find_registry_gist(oauth_token):
-    """
-    Find the user's LaeGOS Registry Gist.
-    Returns (gist_id, content_dict) or (None, None) if not found.
-    """
     headers = _auth_headers(oauth_token)
     resp = requests.get(f"{GITHUB_API}/gists", headers=headers)
 
@@ -43,23 +40,19 @@ def find_registry_gist(oauth_token):
 
 
 def create_registry_gist(oauth_token, initial_registry):
-    """
-    Create a new LaeGOS Registry Gist with initial_registry.
-    Returns (gist_id, initial_registry).
-    """
     headers = _auth_headers(oauth_token)
     payload = {
         "description": GIST_DESCRIPTION,
         "public": False,
         "files": {
             GIST_FILENAME: {
-                "content": _dump_json(initial_registry)
+                "content": json.dumps(initial_registry, indent=2, sort_keys=True)
             }
-        }
+        },
     }
     resp = requests.post(f"{GITHUB_API}/gists", headers=headers, json=payload)
 
-    if resp.status_code not in (201, 200):
+    if resp.status_code not in (200, 201):
         return None, initial_registry
 
     gist_id = resp.json().get("id")
@@ -67,11 +60,6 @@ def create_registry_gist(oauth_token, initial_registry):
 
 
 def load_registry(oauth_token):
-    """
-    Load registry from user's Gist.
-    If not found, create a new one with default registry.
-    Returns (gist_id, registry_dict).
-    """
     default_registry = {"SYSTEM.DAYNIGHTMODE": "Night"}
 
     gist_id, registry = find_registry_gist(oauth_token)
@@ -85,20 +73,12 @@ def load_registry(oauth_token):
 
 
 def save_registry(oauth_token, gist_id, registry):
-    """
-    Save registry to existing Gist.
-    """
     headers = _auth_headers(oauth_token)
     payload = {
         "files": {
             GIST_FILENAME: {
-                "content": _dump_json(registry)
+                "content": json.dumps(registry, indent=2, sort_keys=True)
             }
         }
     }
     requests.patch(f"{GITHUB_API}/gists/{gist_id}", headers=headers, json=payload)
-
-
-def _dump_json(data):
-    import json
-    return json.dumps(data, indent=2, sort_keys=True)
