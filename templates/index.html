@@ -86,8 +86,8 @@
     </style>
 </head>
 
-<body class="{{ 'day' if current_mode == 'Day' else 'night' }}"
-      data-logged-in="{{ '1' if current_user else '0' }}">
+<!-- IMPORTANT: no forced night/day class -->
+<body data-logged-in="{{ '1' if current_user else '0' }}">
 
 <div id="root">
 
@@ -132,6 +132,19 @@
 <script src="{{ url_for('static', filename='js/winbox.bundle.min.js') }}"></script>
 
 <script>
+/* --- Apply theme from registry --- */
+function applyTheme(mode) {
+    document.body.classList.toggle("day", mode === "Day");
+    document.body.classList.toggle("night", mode === "Night");
+}
+
+fetch("/api/registry")
+  .then(r => r.json())
+  .then(reg => {
+      const mode = reg["SYSTEM.DAYNIGHTMODE"] || "Night";
+      applyTheme(mode);
+  });
+
 window.addEventListener("load", () => {
 
     const vw = window.innerWidth;
@@ -155,7 +168,6 @@ window.addEventListener("load", () => {
     let bootX, bootY, userX, userY;
 
     if (loggedIn) {
-        // Logged-in layout: user window left, boot window right
         userX = Math.max(20, vw * 0.06);
         userY = Math.max(20, vh * 0.18);
 
@@ -163,7 +175,6 @@ window.addEventListener("load", () => {
         bootY = Math.max(20, vh * 0.10);
 
     } else {
-        // Logged-out layout: stacked
         bootX = (vw - bootWidth) / 2;
         bootY = Math.max(20, vh * 0.08);
 
@@ -184,7 +195,7 @@ window.addEventListener("load", () => {
         mount: bootContent
     });
 
-    /* --- Create User window (dynamic height) --- */
+    /* --- Create User window --- */
     new WinBox({
         title: "👤 User",
         class: ["no-full", "no-max"],
@@ -206,10 +217,9 @@ window.addEventListener("load", () => {
     const toggle = document.getElementById("toggle-mode");
     if (toggle) {
         toggle.onclick = () => {
-            fetch("/auth/toggle-mode", {method: "POST"}).then(() => {
-                document.body.classList.toggle("day");
-                document.body.classList.toggle("night");
-            });
+            fetch("/auth/toggle-mode", {method: "POST"})
+                .then(r => r.json())
+                .then(data => applyTheme(data.mode));
         };
     }
 });
