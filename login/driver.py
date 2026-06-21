@@ -14,7 +14,6 @@ def _get_registry_container():
     if user:
         user.setdefault("registry", {})
         return user["registry"], True
-    # anonymous
     reg = session.get("anon_registry", {})
     session["anon_registry"] = reg
     return reg, False
@@ -29,7 +28,6 @@ def _sync_registry_to_github(registry):
     try:
         requests.patch(f"{GITHUB_API}/user/metadata", headers=headers, json=payload)
     except Exception:
-        # Silent failure; session still has correct values
         pass
 
 
