@@ -7,6 +7,25 @@ login_bp = Blueprint("login", __name__)
 GITHUB_CLIENT_ID = os.environ["GITHUB_CLIENT_ID"]
 GITHUB_CLIENT_SECRET = os.environ["GITHUB_CLIENT_SECRET"]
 
+METADATA_NAMESPACE = "LaeGOS"
+GITHUB_API = "https://api.github.com"
+
+
+def _get_token():
+    return session.get("github_token")
+
+
+def _load_registry_from_github():
+    token = _get_token()
+    if not token:
+        return {}
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    resp = requests.get(f"{GITHUB_API}/user/metadata", headers=headers)
+    if resp.status_code != 200:
+        return {}
+    data = resp.json() or {}
+    return data.get(METADATA_NAMESPACE, {}) or {}
+
 
 # -----------------------------
 # LOGIN
@@ -50,22 +69,31 @@ def github_callback():
         return jsonify(token_json), 400
 
     access_token = token_json.get("access_token")
-    session["github_token"] = access_token
+    if not access_token:
+        return "No access token", 500
 
+    session["github_token"] = access_token
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    user = requests.get("https://api.github.com/user", headers=headers).json()
-    emails = requests.get("https://api.github.com/user/emails", headers=headers).json()
+    user = requests.get(f"{GITHUB_API}/user", headers=headers).json()
+    emails = requests.get(f"{GITHUB_API}/user/emails", headers=headers).json()
     primary_email = next((e["email"] for e in emails if e.get("primary")), None)
 
+    # Base user info
     session["user"] = {
         "email": primary_email,
         "name": user.get("name"),
         "picture": user.get("avatar_url"),
         "username": user.get("login"),
         "id": user.get("id"),
-        "registry": {"SYSTEM.DAYNIGHTMODE": "Night"},
+        "registry": {},
     }
+
+    # Load registry from GitHub metadata
+    registry = _load_registry_from_github()
+    if not registry:
+        registry = {"SYSTEM.DAYNIGHTMODE": "Night"}
+    session["user"]["registry"] = registry
 
     return redirect(url_for("login.profile"))
 
@@ -88,6 +116,7 @@ def profile():
 def logout():
     session.pop("github_token", None)
     session.pop("user", None)
+    session.pop("anon_registry", None)
     return redirect("/")
 
 
@@ -97,11 +126,15 @@ def logout():
 @login_bp.route("/toggle-mode", methods=["POST"])
 def toggle_mode():
     user = session.get("user")
-    if not user:
-        return "Not logged in", 403
-
-    mode = user["registry"].get("SYSTEM.DAYNIGHTMODE", "Night")
-    user["registry"]["SYSTEM.DAYNIGHTMODE"] = "Day" if mode == "Night" else "Night"
-    session["user"] = user
+    if user and "registry" in user:
+        mode = user["registry"].get("SYSTEM.DAYNIGHTMODE", "Night")
+        user["registry"]["SYSTEM.DAYNIGHTMODE"] = "Day" if mode == "Night" else "Night"
+        session["user"] = user
+    else:
+        # Anonymous registry in session
+        reg = session.get("anon_registry", {})
+        mode = reg.get("SYSTEM.DAYNIGHTMODE", "Night")
+        reg["SYSTEM.DAYNIGHTMODE"] = "Day" if mode == "Night" else "Night"
+        session["anon_registry"] = reg
 
     return "OK"
