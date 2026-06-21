@@ -1,6 +1,11 @@
 from flask import Flask, render_template, jsonify, session
 from login.login import login_bp
-from login.driver import get_current_user, get_registry_value, set_registry_value, is_logged_in
+from login.driver import (
+    get_current_user,
+    get_registry_value,
+    set_registry_value,
+    is_logged_in,
+)
 
 import os, secrets
 
@@ -16,7 +21,7 @@ app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["TRAP_HTTP_EXCEPTIONS"] = True
 app.config["TRAP_BAD_REQUEST_ERRORS"] = True
 
-# Register login blueprint under /auth
+# Register login blueprint WITH /auth prefix (your original choice)
 app.register_blueprint(login_bp, url_prefix="/auth")
 
 # Add drafts folder
@@ -27,9 +32,14 @@ app.jinja_loader.searchpath.append("drafts")
 def inject_user():
     user = get_current_user()
     mode = get_registry_value("SYSTEM.DAYNIGHTMODE") or "Night"
+
+    # Restore your full user object for profile page
+    github_user = session.get("github_user", {})
+
     return {
         "current_user": user,
         "current_mode": mode,
+        "github_user": github_user,   # <-- profile page fix
     }
 
 
