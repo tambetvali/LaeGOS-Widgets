@@ -18,7 +18,7 @@ app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["TRAP_HTTP_EXCEPTIONS"] = True
 app.config["TRAP_BAD_REQUEST_ERRORS"] = True
 
-# /auth prefix (as you had after layout fix)
+# /auth prefix
 app.register_blueprint(login_bp, url_prefix="/auth")
 
 # drafts folder
@@ -47,6 +47,7 @@ def inject_user():
         "current_mode": mode,
     }
 
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -57,12 +58,6 @@ def api_registry():
     if is_logged_in():
         return jsonify(session.get("registry", {}))
     return jsonify(session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"}))
-
-
-@app.route("/api/set_daynight/<mode>")
-def api_set_daynight(mode):
-    set_registry_value("SYSTEM.DAYNIGHTMODE", mode)
-    return {"status": "ok", "mode": mode}
 
 
 @app.route("/about")
