@@ -28,7 +28,7 @@ app.jinja_loader.searchpath.append("drafts")
 @app.context_processor
 def inject_user():
     github_user = session.get("github_user")
-    mode = get_registry_value("SYSTEM.DAYNIGHTMODE") or "Night"
+    mode = get_registry_value("SYSTEM.DAYNIGHTMODE")
 
     if github_user:
         user = {
@@ -58,7 +58,7 @@ def home():
 def api_registry():
     if is_logged_in():
         return jsonify(session.get("registry", {}))
-    return jsonify(session.get("anon_registry", {"SYSTEM.DAYNIGHTMODE": "Night"}))
+    return jsonify(session.get("anon_registry", {}))
 
 
 @app.route("/about")
