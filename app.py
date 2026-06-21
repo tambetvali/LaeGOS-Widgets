@@ -9,7 +9,7 @@ app = Flask(
     template_folder="templates",
 )
 
-# This is rather dev than prod system.
+# Dev settings
 app.config["DEBUG"] = True
 app.config["PROPAGATE_EXCEPTIONS"] = True
 app.config["TRAP_HTTP_EXCEPTIONS"] = True
@@ -17,22 +17,20 @@ app.config["TRAP_BAD_REQUEST_ERRORS"] = True
 
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
-# Register the login blueprint
+# Register login blueprint
 app.register_blueprint(login_bp, url_prefix="/auth")
 
-# Add an additional folder for drafts
+# Add drafts folder
 app.jinja_loader.searchpath.append("drafts")
 
-
+# Inject current_user into templates
 @app.context_processor
 def inject_user():
     return {"current_user": get_current_user()}
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/drafts/<path:filename>")
 def drafts(filename):
